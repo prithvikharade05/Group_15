@@ -1,9 +1,9 @@
-import { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { useState } from "react";
+import { motion } from "framer-motion";
 import API from "../api/axios";
 import { useNavigate } from "react-router-dom";
 
-const particles = Array.from({ length: 50 }, (_, i) => ({
+const particles = Array.from({ length: 40 }, (_, i) => ({
   id: i,
   x: Math.random() * 100,
   y: Math.random() * 100,
@@ -31,132 +31,126 @@ function Login() {
   };
 
   return (
-    <div className="h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-900 overflow-hidden relative">
-      {/* Animated Particles */}
+    <div className="min-h-screen bg-slate-50 overflow-hidden relative">
+      {/* Soft Pastel Background Blurs */}
+      <div className="absolute top-0 -left-1/4 w-3/4 h-3/4 bg-sky-300/30 rounded-full blur-[120px] pointer-events-none mix-blend-multiply" />
+      <div className="absolute bottom-0 -right-1/4 w-3/4 h-3/4 bg-violet-300/30 rounded-full blur-[120px] pointer-events-none mix-blend-multiply" />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-1/2 h-1/2 bg-pink-300/20 rounded-full blur-[100px] pointer-events-none mix-blend-multiply" />
+
+      {/* Animated Subtle Floating Orbs */}
       {particles.map(particle => (
         <motion.div
           key={particle.id}
-          className="absolute bg-white/20 rounded-full"
+          className="absolute bg-white/60 rounded-full shadow-[0_0_15px_rgba(255,255,255,0.8)]"
           style={{
             left: `${particle.x}vw`,
             top: `${particle.y}vh`,
-            width: particle.size,
-            height: particle.size
+            width: particle.size * 1.5,
+            height: particle.size * 1.5
           }}
           animate={{
             y: [0, -100],
-            opacity: [0.5, 1, 0.5],
+            opacity: [0.3, 1, 0.3],
             scale: [1, 1.2, 1]
           }}
           transition={{
-            duration: 10 + particle.speed,
+            duration: 15 + particle.speed * 10,
             repeat: Infinity,
             ease: "linear"
           }}
         />
       ))}
 
-      <div className="flex items-center justify-center h-screen px-4">
+      <div className="flex items-center justify-center min-h-screen px-4 py-12">
         <motion.div
-          initial={{ opacity: 0, y: 50 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-white/5 backdrop-blur-3xl border border-white/20 p-12 rounded-3xl shadow-2xl w-full max-w-md text-white"
+          initial={{ opacity: 0, y: 40, scale: 0.97 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          transition={{ duration: 0.7, ease: "easeOut" }}
+          className="bg-white/70 backdrop-blur-3xl border border-white p-12 rounded-[2.5rem] shadow-[0_20px_60px_-15px_rgba(0,0,0,0.05)] w-full max-w-md text-slate-800 relative z-10"
         >
           <motion.div
-            initial={{ scale: 0.8, rotate: -10 }}
-            animate={{ scale: 1, rotate: 0 }}
-            className="text-center mb-8"
+            initial={{ scale: 0.9, y: -10 }}
+            animate={{ scale: 1, y: 0 }}
+            transition={{ type: "spring", bounce: 0.5, delay: 0.1 }}
+            className="text-center mb-10"
           >
-            <div className="text-5xl mb-4">⚡</div>
-            <h1 className="text-3xl font-black bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
-              Tesla AI Trading
+            <div className="text-5xl mb-6 mx-auto w-24 h-24 bg-gradient-to-br from-white to-sky-50 rounded-[2rem] flex items-center justify-center shadow-lg border border-white/80 shrink-0">
+              <span className="drop-shadow-md">🧠</span>
+            </div>
+            <h1 className="text-3xl font-black bg-gradient-to-r from-slate-800 to-indigo-600 bg-clip-text text-transparent mb-2 tracking-tight">
+              Neural Trader
             </h1>
-            <p className="text-white/60 mt-2 text-sm">Neural Trading Engine</p>
+            <p className="text-slate-500/80 text-sm font-medium">Welcome to the Intelligent Markets</p>
           </motion.div>
 
           <div className="space-y-6">
-            <motion.div
-              whileFocus={{ scale: 1.02 }}
-              className="relative group"
-            >
+            <motion.div whileFocus={{ scale: 1.01 }} className="relative group">
+              <span className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 text-lg pointer-events-none transition-colors group-focus-within:text-indigo-500">👤</span>
               <input
-                className="w-full p-4 bg-white/10 border border-white/20 rounded-2xl backdrop-blur-lg 
-                text-white placeholder-white/50 focus:outline-none focus:border-cyan-400 focus:ring-2 ring-cyan-400/50
-                transition-all duration-300 group-focus-within:border-cyan-400/50 caret-white"
+                className="w-full pl-14 pr-5 py-4 bg-white/80 border-2 border-slate-100 rounded-2xl backdrop-blur-md text-slate-800 placeholder-slate-400 focus:outline-none focus:border-indigo-400 focus:ring-4 ring-indigo-500/10 shadow-sm transition-all duration-300"
                 placeholder="Username"
                 value={username}
-                onChange={(e) => setUsername(e.target.value)} autocomplete="username"
+                onChange={(e) => setUsername(e.target.value)}
+                autoComplete="username"
                 onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
-              />
-              />
-              <motion.div
-                className="absolute inset-0 rounded-2xl bg-gradient-to-r from-cyan-500/20 to-blue-500/20 blur opacity-0 group-focus-within:opacity-100 transition-all duration-500"
-                initial={{ scaleX: 0 }}
-                animate={{ scaleX: 1 }}
-                transition={{ duration: 0.3 }}
               />
             </motion.div>
 
-            <motion.div
-              whileFocus={{ scale: 1.02 }}
-              className="relative group"
-            >
+            <motion.div whileFocus={{ scale: 1.01 }} className="relative group">
+              <span className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 text-lg pointer-events-none transition-colors group-focus-within:text-indigo-500">🔒</span>
               <input
                 type="password"
-                className="w-full p-4 bg-white/10 border border-white/20 rounded-2xl backdrop-blur-lg 
-                text-white placeholder-white/50 focus:outline-none focus:border-pink-400 focus:ring-2 ring-pink-400/50
-                transition-all duration-300 group-focus-within:border-pink-400/50 caret-white"
+                className="w-full pl-14 pr-5 py-4 bg-white/80 border-2 border-slate-100 rounded-2xl backdrop-blur-md text-slate-800 placeholder-slate-400 focus:outline-none focus:border-indigo-400 focus:ring-4 ring-indigo-500/10 shadow-sm transition-all duration-300"
                 placeholder="Password"
                 value={password}
-                type="password"
-                onChange={(e) => setPassword(e.target.value)} autocomplete="current-password"
+                onChange={(e) => setPassword(e.target.value)}
+                autoComplete="current-password"
                 onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
-              />
-              />
-              <motion.div
-                className="absolute inset-0 rounded-2xl bg-gradient-to-r from-pink-500/20 to-purple-500/20 blur opacity-0 group-focus-within:opacity-100 transition-all duration-500"
-                initial={{ scaleX: 0 }}
-                animate={{ scaleX: 1 }}
-                transition={{ duration: 0.3 }}
               />
             </motion.div>
 
             <motion.button
-              whileHover={{ scale: 1.05 }}
+              whileHover={{ scale: 1.02, y: -2 }}
               whileTap={{ scale: 0.98 }}
               onClick={handleLogin}
-              disabled={isLoading}
-              className="w-full bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 
-              text-white font-bold py-4 px-6 rounded-2xl shadow-lg hover:shadow-cyan-500/25 
-              transition-all duration-300 relative overflow-hidden disabled:opacity-50"
+              disabled={isLoading || !username || !password}
+              className="w-full bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white font-bold py-4 px-6 rounded-2xl shadow-lg shadow-indigo-500/30 transition-all duration-300 disabled:opacity-50 mt-4 border border-indigo-400/50"
             >
-              <span className="relative z-10 flex items-center justify-center">
+              <span className="flex items-center justify-center tracking-wide">
                 {isLoading ? (
                   <>
-                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5" fill="none" viewBox="0 0 24 24">
-                      <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" pathLength="1" className="opacity-25"/>
+                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
+                      <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" className="opacity-25" />
                       <path fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
                     </svg>
-                    Signing In...
+                    Authenticating Matrix
                   </>
                 ) : (
-                  "Enter Neural Network"
+                  "Access Terminal"
                 )}
               </span>
-              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -skew-x-12 -translate-x-[100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
             </motion.button>
           </div>
 
-          <motion.p
+          <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ delay: 0.5 }}
-            className="text-center mt-8 text-sm text-white/50 hover:text-white cursor-pointer transition-colors"
-            onClick={() => navigate("/register")}
-            whileHover={{ scale: 1.05 }}
+            transition={{ delay: 0.4 }}
+            className="flex flex-col items-center justify-center pt-8"
           >
-            New to Neural Trading? Create Account
-          </motion.p>
+            <div className="w-full flex items-center mb-6">
+              <div className="h-px bg-gradient-to-r from-transparent via-slate-200 to-transparent flex-1" />
+              <span className="text-slate-400/70 text-xs px-4 font-medium uppercase tracking-widest">New User?</span>
+              <div className="h-px bg-gradient-to-r from-transparent via-slate-200 to-transparent flex-1" />
+            </div>
+            
+            <p
+              className="text-sm font-semibold text-indigo-600 hover:text-indigo-800 cursor-pointer transition-colors"
+              onClick={() => navigate("/register")}
+            >
+              Configure Network Identity →
+            </p>
+          </motion.div>
         </motion.div>
       </div>
     </div>

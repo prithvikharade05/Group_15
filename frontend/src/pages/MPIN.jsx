@@ -65,54 +65,63 @@ function MPIN() {
   }, [mpin, isLoading]);
 
   return (
-    <div className="h-screen bg-gradient-to-br from-indigo-900 via-purple-900/50 to-pink-900 relative overflow-hidden">
+    <div className="min-h-screen bg-slate-50 relative overflow-hidden">
+      {/* Soft Pastel Background Blurs */}
+      <div className="absolute top-1/4 -right-1/4 w-3/4 h-3/4 bg-sky-300/20 rounded-full blur-[120px] pointer-events-none mix-blend-multiply" />
+      <div className="absolute bottom-0 -left-1/4 w-3/4 h-3/4 bg-emerald-300/20 rounded-full blur-[120px] pointer-events-none mix-blend-multiply" />
+
       {/* Success Particles */}
       <AnimatePresence>
-        {particlesAnim.map((particle, i) => (
+        {particlesAnim.map(particle => (
           <motion.div
             key={particle.id}
-            className="absolute bg-gradient-to-r from-cyan-400 to-blue-400 rounded-full blur-sm"
+            className="absolute bg-gradient-to-r from-sky-400 to-indigo-400 rounded-full blur-[1px] z-20"
             style={{
               left: `${particle.x}vw`,
               top: `${particle.y}vh`,
-              width: particle.size,
-              height: particle.size
+              width: particle.size * 2,
+              height: particle.size * 2
             }}
             initial={{ scale: 0, opacity: 1 }}
             animate={{
-              x: particle.vx * 0.1,
-              y: particle.vy * 0.1,
+              x: particle.vx * 0.15,
+              y: particle.vy * 0.15,
               scale: 0,
-              opacity: [1, 0.5, 0]
+              opacity: [1, 0.8, 0]
             }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 1.5 }}
+            transition={{ duration: 1.5, ease: "easeOut" }}
           />
         ))}
       </AnimatePresence>
 
-      <div className="flex items-center justify-center h-screen px-4">
+      <div className="flex items-center justify-center min-h-screen px-4 py-12">
         <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
+          initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="bg-white/5 backdrop-blur-3xl border border-white/20 p-12 rounded-3xl shadow-2xl 
-                     w-full max-w-sm text-center relative z-10"
+          transition={{ duration: 0.6, ease: "easeOut" }}
+          className="bg-white/70 backdrop-blur-3xl border border-white p-12 rounded-[2.5rem] shadow-[0_20px_60px_-15px_rgba(0,0,0,0.05)] w-full max-w-sm text-center relative z-10"
         >
           <motion.div
-            animate={{ rotate: [0, 5, -5, 0] }}
-            transition={{ duration: 3, repeat: Infinity }}
-            className="mb-8"
+            animate={{ rotate: [0, 2, -2, 0] }}
+            transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+            className="mb-10"
           >
-            <div className="text-6xl mx-auto w-24 h-24 bg-gradient-to-r from-cyan-500 to-blue-600 
-                           rounded-2xl flex items-center justify-center shadow-2xl mb-4">
-              🔐
+            <div className="text-6xl mx-auto w-24 h-24 bg-gradient-to-br from-white to-sky-50 rounded-[2rem] flex items-center justify-center shadow-lg border border-white/80 mb-6 shrink-0">
+              <span className="drop-shadow-md">🔐</span>
             </div>
-            <h2 className="text-2xl font-black bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent mb-2">
-              Neural Lock
+            <h2 className="text-3xl font-black bg-gradient-to-r from-slate-800 to-indigo-600 bg-clip-text text-transparent mb-2 tracking-tight">
+              Biometric Lock
             </h2>
-            <p className="text-white/50 text-sm">Enter 4-digit MPIN</p>
+            <p className="text-slate-500/80 text-sm font-medium">Verify Personal Access Sequence</p>
             {isLoading && (
-              <p className="text-cyan-400 font-medium mt-2">Verifying Neural Signature...</p>
+              <motion.p 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="text-sky-500 font-bold mt-4 text-sm tracking-wide"
+              >
+                Authorizing Connection...
+              </motion.p>
             )}
           </motion.div>
 
@@ -121,34 +130,27 @@ function MPIN() {
             {mpin.map((digit, i) => (
               <motion.div
                 key={i}
-                className={`relative group w-20 h-20 rounded-2xl flex items-center justify-center 
-                           text-2xl font-mono transition-all duration-300 ${
+                className={`relative group w-16 h-20 sm:w-20 sm:h-24 rounded-2xl flex items-center justify-center 
+                           text-4xl font-mono transition-all duration-300 ${
                              digit 
-                               ? 'bg-gradient-to-r from-cyan-500/30 to-blue-500/30 border-cyan-400 shadow-cyan-500/25 shadow-lg scale-110' 
-                               : 'bg-white/10 border-white/20 hover:border-white/40 hover:shadow-lg'
+                               ? 'bg-white border-2 border-indigo-500 shadow-lg shadow-indigo-500/20 scale-110' 
+                               : 'bg-white/60 border-2 border-slate-200 hover:border-indigo-300 hover:shadow-md'
                            }`}
-                whileHover={{ scale: 1.1 }}
+                whileHover={{ scale: digit ? 1.15 : 1.05 }}
                 whileTap={{ scale: 0.95 }}
               >
                 <input
                   maxLength={1}
                   value={digit}
-                  className="absolute inset-0 w-full h-full text-center text-2xl bg-transparent 
-                            text-white/90 outline-none caret-transparent cursor-default pointer-events-none"
+                  className="absolute inset-0 w-full h-full text-center text-4xl font-black bg-transparent 
+                            text-slate-800 outline-none caret-transparent cursor-default pointer-events-none drop-shadow-sm"
                   readOnly
-                />
-                <motion.div
-                  className="absolute inset-0 bg-gradient-to-r from-cyan-500/20 to-blue-500/20 
-                            rounded-2xl blur opacity-0 group-hover:opacity-50"
-                  initial={{ scaleX: 0 }}
-                  whileHover={{ scaleX: 1 }}
-                  transition={{ duration: 0.3 }}
                 />
                 {!digit && (
                   <motion.div
-                    className="text-white/30"
-                    animate={{ scale: [1, 1.1, 1] }}
-                    transition={{ duration: 1.5, repeat: Infinity }}
+                    className="text-slate-300"
+                    animate={{ scale: [1, 1.2, 1], opacity: [0.5, 1, 0.5] }}
+                    transition={{ duration: 2, repeat: Infinity, delay: i * 0.2 }}
                   >
                     •
                   </motion.div>
@@ -158,35 +160,39 @@ function MPIN() {
           </div>
 
           {/* Instructions */}
-          <div className="text-xs text-white/40 space-y-1 mb-8">
-            <p>Keyboard input supported</p>
-            <p>Numbers 0-9 | Backspace</p>
+          <div className="text-xs text-slate-400 space-y-2 mb-10 font-bold">
+            <p className="uppercase tracking-widest text-indigo-500/80">Keyboard Activated</p>
+            <p className="tracking-widest">0-9 | BSPC</p>
           </div>
 
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="space-y-3"
+            className="space-y-4"
           >
             {!isLoading && (
               <motion.button
-                whileHover={{ scale: 1.05 }}
+                whileHover={{ scale: 1.02, y: -2 }}
                 whileTap={{ scale: 0.98 }}
                 onClick={() => {
                   if (mpin[3]) handlePinComplete();
                 }}
-                className="w-full bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 
-                          text-white font-bold py-4 rounded-2xl shadow-lg hover:shadow-emerald-500/25 transition-all"
+                className={`w-full bg-gradient-to-r from-sky-500 to-indigo-600 
+                          text-white font-black py-4 rounded-2xl transition-all duration-300 border border-indigo-400/50 ${
+                            mpin[3] 
+                              ? "shadow-lg shadow-indigo-500/30 cursor-pointer" 
+                              : "opacity-40 cursor-not-allowed grayscale"
+                          }`}
               >
-                Unlock Dashboard
+                Unlock Architecture
               </motion.button>
             )}
             <motion.button
               whileHover={{ scale: 1.02 }}
-              className="w-full text-white/60 hover:text-white transition-colors text-sm py-2 border border-white/20 rounded-xl backdrop-blur-sm"
+              className="w-full text-slate-500 hover:text-slate-800 font-bold tracking-wide transition-colors text-sm py-3 border-2 border-slate-200 hover:border-slate-300 bg-white/50 hover:bg-white rounded-xl backdrop-blur-md"
               onClick={() => navigate('/')}
             >
-              ← Back to Login
+              ← Terminate Login
             </motion.button>
           </motion.div>
         </motion.div>

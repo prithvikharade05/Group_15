@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import API from "../api/axios";
 import { useNavigate } from "react-router-dom";
 
-const particles = Array.from({ length: 50 }, (_, i) => ({
+const particles = Array.from({ length: 40 }, (_, i) => ({
   id: i,
   x: Math.random() * 100,
   y: Math.random() * 100,
@@ -31,152 +31,123 @@ function Register() {
   };
 
   return (
-    <div className="h-screen bg-gradient-to-br from-slate-900 via-blue-900/80 to-indigo-900 overflow-hidden relative">
-      {/* Animated Particles */}
+    <div className="min-h-screen bg-slate-50 overflow-hidden relative">
+      {/* Soft Pastel Background Blurs */}
+      <div className="absolute top-0 -right-1/4 w-3/4 h-3/4 bg-violet-300/30 rounded-full blur-[120px] pointer-events-none mix-blend-multiply" />
+      <div className="absolute bottom-0 -left-1/4 w-3/4 h-3/4 bg-sky-300/30 rounded-full blur-[120px] pointer-events-none mix-blend-multiply" />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-1/2 h-1/2 bg-indigo-300/20 rounded-full blur-[100px] pointer-events-none mix-blend-multiply" />
+
+      {/* Animated Subtle Floating Orbs */}
       {particles.map(particle => (
         <motion.div
           key={particle.id}
-          className="absolute bg-gradient-to-r from-emerald-400 to-teal-400 rounded-full opacity-30"
+          className="absolute bg-white/60 rounded-full shadow-[0_0_15px_rgba(255,255,255,0.8)]"
           style={{
             left: `${particle.x}vw`,
             top: `${particle.y}vh`,
-            width: particle.size * 2,
-            height: particle.size * 2
+            width: particle.size * 1.5,
+            height: particle.size * 1.5
           }}
           animate={{
             y: [0, -120],
-            x: [0, Math.sin(particle.id) * 20],
-            opacity: [0.3, 0.8, 0.3],
+            x: [0, Math.sin(particle.id) * 30],
+            opacity: [0.3, 1, 0.3],
             scale: [0.8, 1.2, 0.8]
           }}
           transition={{
-            duration: 12 + particle.speed,
+            duration: 15 + particle.speed * 10,
             repeat: Infinity,
             ease: "easeInOut"
           }}
         />
       ))}
 
-      <div className="flex items-center justify-center h-screen px-4">
+      <div className="flex items-center justify-center min-h-screen px-4 py-12">
         <motion.div
-          initial={{ opacity: 0, y: 50, scale: 0.9 }}
+          initial={{ opacity: 0, y: 40, scale: 0.97 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
-          transition={{ duration: 0.8 }}
-          className="bg-white/5 backdrop-blur-3xl border border-white/20 p-12 rounded-3xl shadow-2xl 
-                     w-full max-w-md text-white"
+          transition={{ duration: 0.7, ease: "easeOut" }}
+          className="bg-white/70 backdrop-blur-3xl border border-white p-12 rounded-[2.5rem] shadow-[0_20px_60px_-15px_rgba(0,0,0,0.05)] w-full max-w-md text-slate-800 relative z-10"
         >
           <motion.div
-            initial={{ rotate: -180 }}
-            animate={{ rotate: 0 }}
-            transition={{ duration: 1, type: "spring" }}
-            className="text-center mb-8"
+            initial={{ scale: 0.9, rotate: -5 }}
+            animate={{ scale: 1, rotate: 0 }}
+            transition={{ type: "spring", bounce: 0.5, delay: 0.1 }}
+            className="text-center mb-10"
           >
-            <div className="text-5xl mb-4 mx-auto w-24 h-24 bg-gradient-to-r from-sky-500 via-blue-500 to-indigo-600 
-                           rounded-3xl flex items-center justify-center shadow-sky-500/40 shadow-2xl">
-              🧬
+            <div className="text-5xl mb-6 mx-auto w-24 h-24 bg-gradient-to-br from-white to-violet-50 rounded-[2rem] flex items-center justify-center shadow-lg border border-white/80 shrink-0">
+              <span className="drop-shadow-md">🧬</span>
             </div>
-            <h1 className="text-3xl font-black bg-gradient-to-r from-sky-400 via-blue-400 to-indigo-500 bg-clip-text text-transparent">
-              Tesla Account
+            <h1 className="text-3xl font-black bg-gradient-to-r from-indigo-600 to-violet-500 bg-clip-text text-transparent mb-2 tracking-tight">
+              Neural Mesh
             </h1>
-            <p className="text-white/60 mt-2 text-sm">Join the AI Trading Network</p>
+            <p className="text-slate-500/80 text-sm font-medium">Register for Global Terminal Access</p>
           </motion.div>
 
           <div className="space-y-6">
-            <motion.div
-              whileFocus={{ scale: 1.02, rotateX: 5 }}
-              className="relative group"
-            >
+            <motion.div whileFocus={{ scale: 1.01 }} className="relative group">
+              <span className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 text-lg pointer-events-none transition-colors group-focus-within:text-violet-500">👤</span>
               <input
-                className="w-full p-5 bg-white/10 border border-emerald-500/30 rounded-3xl backdrop-blur-xl 
-                          text-white placeholder-white/50 focus:outline-none focus:border-emerald-400/70 focus:ring-4 
-                          focus:ring-emerald-500/20 transition-all duration-500 shadow-lg hover:shadow-emerald-500/20
-                          group-focus-within:shadow-emerald-400/30"
-                placeholder="Neural ID (Username)"
+                className="w-full pl-14 pr-5 py-4 bg-white/80 border-2 border-slate-100 rounded-2xl backdrop-blur-md text-slate-800 placeholder-slate-400 focus:outline-none focus:border-violet-400 focus:ring-4 ring-violet-500/10 shadow-sm transition-all duration-300"
+                placeholder="Network Alias (Username)"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
               />
-              <motion.div
-                className="absolute inset-0 bg-gradient-to-r from-emerald-500/20 via-teal-500/20 to-emerald-500/20 
-                          rounded-3xl blur opacity-0 group-focus-within:opacity-100 -z-10"
-                initial={{ pathLength: 0 }}
-                animate={{ pathLength: 1 }}
-                transition={{ duration: 0.6, ease: "easeOut" }}
-              />
             </motion.div>
 
-            <motion.div
-              whileFocus={{ scale: 1.02, rotateX: 5 }}
-              className="relative group"
-            >
+            <motion.div whileFocus={{ scale: 1.01 }} className="relative group">
+              <span className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 text-lg pointer-events-none transition-colors group-focus-within:text-violet-500">🔑</span>
               <input
                 type="password"
-                className="w-full p-5 bg-white/10 border border-pink-500/30 rounded-3xl backdrop-blur-xl 
-                          text-white placeholder-white/50 focus:outline-none focus:border-pink-400/70 focus:ring-4 
-                          focus:ring-pink-500/20 transition-all duration-500 shadow-lg hover:shadow-pink-500/20
-                          group-focus-within:shadow-pink-400/30"
-                placeholder="Secure Neural Key (Password)"
+                className="w-full pl-14 pr-5 py-4 bg-white/80 border-2 border-slate-100 rounded-2xl backdrop-blur-md text-slate-800 placeholder-slate-400 focus:outline-none focus:border-violet-400 focus:ring-4 ring-violet-500/10 shadow-sm transition-all duration-300"
+                placeholder="Secure Node Key (Password)"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
               />
-              <motion.div
-                className="absolute inset-0 bg-gradient-to-r from-pink-500/20 to-purple-500/20 
-                          rounded-3xl blur opacity-0 group-focus-within:opacity-100 -z-10"
-                initial={{ pathLength: 0 }}
-                animate={{ pathLength: 1 }}
-                transition={{ duration: 0.6, ease: "easeOut" }}
-              />
             </motion.div>
 
             <motion.button
-              whileHover={{ scale: 1.08, y: -4 }}
+              whileHover={{ scale: 1.02, y: -2 }}
               whileTap={{ scale: 0.98 }}
               onClick={handleRegister}
               disabled={isLoading || !username || !password}
-              className="w-full bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 
-                        hover:from-emerald-600 hover:via-teal-600 hover:to-emerald-700 text-white 
-                        font-black py-5 px-8 rounded-3xl shadow-2xl hover:shadow-emerald-500/50 
-                        transition-all duration-500 relative overflow-hidden disabled:opacity-50
-                        disabled:cursor-not-allowed"
+              className="w-full bg-gradient-to-r from-violet-500 to-fuchsia-600 hover:from-violet-600 hover:to-fuchsia-700 text-white font-bold py-4 px-6 rounded-2xl shadow-lg shadow-violet-500/30 transition-all duration-300 disabled:opacity-50 mt-4 border border-violet-400/50"
             >
-              <span className="relative z-10 flex items-center justify-center">
+              <span className="flex items-center justify-center tracking-wide">
                 {isLoading ? (
                   <>
-                    <svg className="animate-spin -ml-1 mr-4 h-6 w-6" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
+                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
+                      <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" className="opacity-25" />
+                      <path fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
                     </svg>
-                    Initializing Neural Account...
+                    Synthesizing Profile
                   </>
                 ) : (
-                  "Initialize Neural Account"
+                  "Enroll Node"
                 )}
               </span>
-              <div className="absolute inset-0 bg-white/30 skew-x-[-25deg] -translate-x-[120%] 
-                             group-hover:translate-x-[120%] transition-transform duration-1000 -z-10" />
-            </motion.button>
-
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="flex items-center justify-center space-x-2 pt-4"
-            >
-              <div className="h-px bg-gradient-to-r from-transparent via-white/30 to-transparent flex-1" />
-              <span className="text-white/40 text-xs">or</span>
-              <div className="h-px bg-gradient-to-r from-transparent via-white/30 to-transparent flex-1" />
-            </motion.div>
-
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.98 }}
-              onClick={() => navigate("/")}
-              className="w-full text-emerald-300 hover:text-emerald-200 font-medium py-3 
-                        border-2 border-emerald-500/40 hover:border-emerald-400/70 
-                        rounded-2xl backdrop-blur-xl transition-all duration-300 shadow-lg 
-                        hover:shadow-emerald-400/20 hover:bg-emerald-500/5"
-            >
-              Already Synced? Login →
             </motion.button>
           </div>
+
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.4 }}
+            className="flex flex-col items-center justify-center pt-8"
+          >
+            <div className="w-full flex items-center mb-6">
+              <div className="h-px bg-gradient-to-r from-transparent via-slate-200 to-transparent flex-1" />
+              <span className="text-slate-400/70 text-xs px-4 font-medium uppercase tracking-widest">ALREADY CONFIGURED?</span>
+              <div className="h-px bg-gradient-to-r from-transparent via-slate-200 to-transparent flex-1" />
+            </div>
+            
+            <p
+              className="text-sm font-semibold text-violet-600 hover:text-violet-800 cursor-pointer transition-colors"
+              onClick={() => navigate("/")}
+            >
+              Init Session Sequence →
+            </p>
+          </motion.div>
         </motion.div>
       </div>
     </div>
