@@ -4,18 +4,24 @@ import Login from "./pages/Login";
 import Register from "./pages/Register";
 import MPIN from "./pages/MPIN";
 import Dashboard from "./pages/Dashboard";
+import Navbar from "./components/Navbar";
 
 function App() {
   return (
     <Router>
       <Routes>
-        {/* Auth Routes */}
+        {/* Auth Routes - No Navbar */}
         <Route path="/" element={<Login />} />
         <Route path="/register" element={<Register />} />
-
-        {/* Secure Flow */}
         <Route path="/mpin" element={<MPIN />} />
-        <Route path="/dashboard" element={<Dashboard />} />
+
+        {/* Dashboard - With Navbar */}
+        <Route path="/dashboard" element={
+          <>
+            <Navbar />
+            <Dashboard />
+          </>
+        } />
       </Routes>
     </Router>
   );
