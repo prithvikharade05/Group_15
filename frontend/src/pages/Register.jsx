@@ -79,9 +79,9 @@ function Register() {
               <span className="drop-shadow-md">🧬</span>
             </div>
             <h1 className="text-3xl font-black bg-gradient-to-r from-indigo-600 to-violet-500 bg-clip-text text-transparent mb-2 tracking-tight">
-              Neural Mesh
+              AlphaMind
             </h1>
-            <p className="text-slate-500/80 text-sm font-medium">Register for Global Terminal Access</p>
+            <p className="text-slate-500/80 text-sm font-medium">The Future of AI Powerd Trading</p>
           </motion.div>
 
           <div className="space-y-6">

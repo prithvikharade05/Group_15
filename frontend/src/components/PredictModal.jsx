@@ -67,7 +67,7 @@ const PredictModal = ({ model = 'arima', isOpen, onClose }) => {
           animate={{ scale: 1, opacity: 1, y: 0 }}
           exit={{ scale: 0.95, opacity: 0, y: 20 }}
           transition={{ type: "spring", damping: 25, stiffness: 300 }}
-          className="bg-white/90 backdrop-blur-3xl border border-white rounded-[2.5rem] w-full max-w-4xl max-h-[90vh] overflow-y-auto shadow-[0_20px_70px_-15px_rgba(0,0,0,0.15)] relative overflow-hidden"
+          className="bg-white/90 backdrop-blur-3xl border border-white rounded-[2.5rem] w-full max-w-[90vw] max-h-[90vh] overflow-y-auto shadow-[0_20px_70px_-15px_rgba(0,0,0,0.15)] relative overflow-hidden"
           onClick={e => e.stopPropagation()}
         >
           {/* Modal Background Glow */}
@@ -215,7 +215,7 @@ const PredictModal = ({ model = 'arima', isOpen, onClose }) => {
                   <PredictionChart
                     historical={result.historical_prices || []}
                     forecast={result.forecast_prices || []}
-                    dates={result.forecast_dates || []}
+                    dates={[...(result.historical_dates || []), ...(result.forecast_dates || [])]}
                     modelName={config.name}
                   />
                 </div>

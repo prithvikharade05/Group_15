@@ -1,80 +1,77 @@
-import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
+import { useState } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
 
 const Navbar = () => {
-  const [user, setUser] = useState(null);
   const navigate = useNavigate();
+  const [search, setSearch] = useState('');
 
-  useEffect(() => {
-    // Get user info from token or API
-    const token = localStorage.getItem('token');
-    if (token) {
-      // Decode token or fetch user
-      setUser({ name: 'Neural Trader | Node 01' });
+  // Minimal user stub to prevent breaking old state checks, though not functionally required for layout demo
+  const user = { name: "Operator" };
+
+  const handleSearch = (e) => {
+    e.preventDefault();
+    if (search.trim()) {
+      navigate(`/stock/${search.trim().toUpperCase()}`);
+      setSearch('');
     }
-  }, []);
-
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    navigate('/');
   };
 
   return (
-    <motion.div
-      initial={{ y: -100 }}
-      animate={{ y: 0 }}
-      className="bg-white/60 backdrop-blur-3xl border-b border-white sticky top-0 z-50 shadow-[0_4px_30px_rgba(0,0,0,0.03)]"
-    >
-      <div className="absolute bottom-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-slate-200 to-transparent" />
-      
-      <div className="max-w-7xl mx-auto px-6 py-4">
-        <div className="flex items-center justify-between">
-          {/* Logo */}
-          <motion.div
-            whileHover={{ scale: 1.02 }}
-            className="flex items-center space-x-4 cursor-pointer"
-            onClick={() => navigate('/dashboard')}
-          >
-            <div className="relative flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 shadow-lg shadow-indigo-500/30">
-              <span className="text-white text-xl font-black relative z-10">T</span>
-              <div className="absolute inset-0 bg-white/20 rounded-xl blur-[2px]" />
-            </div>
-            <span className="text-xl font-black bg-gradient-to-r from-indigo-600 to-violet-500 bg-clip-text text-transparent tracking-widest uppercase">
-              Tesla Core
+    <header className="bg-white border-b border-slate-200 sticky top-0 z-50 shadow-lg">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-30 flex items-center justify-between">
+
+        {/* Left: Logo & Subtitle */}
+        <div className="flex flex-col justify-center flex-shrink-0 cursor-pointer group" onClick={() => navigate('/')}>
+          <h1 className="text-5xl font-extrabold tracking-tight font-space mb-1">
+            <span className="bg-gradient-to-r from-purple-600 via-pink-500 to-indigo-400 bg-clip-text text-transparent animate-pulse">
+              AlphaMind
             </span>
-          </motion.div>
-
-          {/* User Menu */}
-          {user && (
-            <div className="flex items-center space-x-6">
-              <motion.div
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className="hidden md:flex items-center space-x-2 bg-white/80 px-4 py-1.5 rounded-full shadow-sm border border-slate-100"
-              >
-                <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)] animate-pulse" />
-                <span className="text-slate-600 text-sm font-bold tracking-wide">{user.name}</span>
-              </motion.div>
-              
-              <div className="w-px h-6 bg-slate-200 hidden md:block" />
-
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={handleLogout}
-                className="px-5 py-2.5 border border-slate-200 hover:border-red-200 bg-white hover:bg-red-50 
-                          text-slate-500 hover:text-red-500 font-bold text-sm tracking-wider uppercase rounded-xl 
-                          shadow-sm hover:shadow-md transition-all flex items-center space-x-2 group"
-              >
-                <span>Disconnect</span>
-                <svg className="w-4 h-4 ml-1 text-slate-400 group-hover:text-red-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
-              </motion.button>
-            </div>
-          )}
+          </h1>
+          <span className="text-xs text-slate-600 font-medium tracking-widest uppercase opacity-100 group-hover:opacity-100 transition-all duration-300">
+            The Future of AI Powered Trading
+          </span>
         </div>
+
+        {/* Center: Global Search Bar */}
+        <div className="flex-1 max-w-xl mx-8">
+          <form onSubmit={handleSearch} className="relative">
+            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+              <svg className="h-5 w-5 text-slate-400 animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </div>
+            <input
+              type="text"
+              className="block w-full pl-12 pr-4 py-3 border-2 border-slate-200 rounded-xl leading-6 bg-gradient-to-r from-slate-50 to-white placeholder-slate-400 focus:outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-200 focus:shadow-lg transition-all duration-300 font-inter text-sm font-medium"
+              placeholder="Search stocks, indices, or macro trends..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </form>
+        </div>
+
+        {/* Right: Navigation Links */}
+        <nav className="hidden md:flex items-center space-x-8">
+          <Link to="/" className="text-slate-600 hover:text-purple-600 text-base font-semibold transition-all duration-300 hover:scale-105 transform font-inter tracking-wide">Dashboards</Link>
+          <Link to="/" className="text-slate-600 hover:text-purple-600 text-base font-semibold transition-all duration-300 hover:scale-105 transform font-inter tracking-wide">Models</Link>
+          <Link to="/" className="text-slate-600 hover:text-purple-600 text-base font-semibold transition-all duration-300 hover:scale-105 transform font-inter tracking-wide">Portfolio</Link>
+          <Link to="/" className="text-slate-600 hover:text-purple-600 text-base font-semibold transition-all duration-300 hover:scale-105 transform font-inter tracking-wide">AI Insights</Link>
+
+          <div className="w-px h-8 bg-gradient-to-b from-transparent via-purple-300 to-transparent mx-4" />
+
+          <div className="flex items-center space-x-4">
+            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-400 to-pink-400 flex items-center justify-center text-white font-bold text-lg border-2 border-white shadow-lg transform transition-all duration-300 hover:scale-110 hover:rotate-12">
+              {user.name.charAt(0)}
+            </div>
+            <div className="text-right">
+              <div className="text-sm font-semibold text-slate-700">{user.name}</div>
+              <div className="text-xs text-slate-400 font-medium">AI Operator</div>
+            </div>
+          </div>
+        </nav>
+
       </div>
-    </motion.div>
+    </header>
   );
 };
 

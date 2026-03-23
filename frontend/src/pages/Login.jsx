@@ -78,9 +78,9 @@ function Login() {
               <span className="drop-shadow-md">🧠</span>
             </div>
             <h1 className="text-3xl font-black bg-gradient-to-r from-slate-800 to-indigo-600 bg-clip-text text-transparent mb-2 tracking-tight">
-              Neural Trader
+              AlphaMind
             </h1>
-            <p className="text-slate-500/80 text-sm font-medium">Welcome to the Intelligent Markets</p>
+            <p className="text-slate-500/80 text-sm font-medium">The Future of AI Powerd Trading</p>
           </motion.div>
 
           <div className="space-y-6">

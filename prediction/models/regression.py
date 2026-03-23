@@ -13,7 +13,7 @@ warnings.filterwarnings('ignore')
 # =========================
 # FETCH DATA
 # =========================
-def fetch_stock_data(symbol, period="3y"):
+def fetch_stock_data(symbol, period="max"):
     try:
         df = yf.Ticker(symbol + ".NS").history(period=period)
         return df if not df.empty else None
@@ -153,7 +153,8 @@ def run_regression_forecast(symbol, days=5):
         "success": True,
         "symbol": symbol,
         "current_price": float(df['Close'].iloc[-1]),
-        "predictions": predictions,
-        "prediction_dates": future_dates,
-        "historical_prices": df['Close'].tail(60).tolist()
+        "forecast_prices": predictions,
+        "forecast_dates": future_dates,
+        "historical_dates": df.index.strftime('%Y-%m-%d').tolist(),
+        "historical_prices": df['Close'].tolist()
     }

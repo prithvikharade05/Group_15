@@ -77,7 +77,7 @@ def _save_cached_data(ticker, df):
 # =========================
 # FETCH DATA (FIXED)
 # =========================
-def fetch_market_data(symbol, period="4y"):
+def fetch_market_data(symbol, period="max"):
 
     symbol = format_symbol(symbol)
     print(f"Fetching data for: {symbol}")
@@ -215,7 +215,7 @@ def generate_forecast(series, order, steps=5):
 # =========================
 # MAIN FUNCTION
 # =========================
-def run_arima_forecast(symbol, period="4y", forecast_days=5):
+def run_arima_forecast(symbol, period="max", forecast_days=5):
 
     df = fetch_market_data(symbol, period)
 
@@ -239,7 +239,8 @@ def run_arima_forecast(symbol, period="4y", forecast_days=5):
     return {
         "success": True,
         "symbol": format_symbol(symbol),
-        "historical_prices": series.tail(100).tolist(),
+        "historical_dates": series.index.strftime('%Y-%m-%d').tolist(),
+        "historical_prices": series.tolist(),
         "forecast_prices": forecast,
         "forecast_dates": future_dates,
         "model_order": order

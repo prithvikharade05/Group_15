@@ -24,7 +24,7 @@ except:
 # =========================
 # FETCH DATA
 # =========================
-def fetch_stock_data(symbol, period="4y"):
+def fetch_stock_data(symbol, period="max"):
     try:
         df = yf.Ticker(symbol + ".NS").history(period=period)
         return df if not df.empty else None
@@ -156,7 +156,7 @@ def evaluate_model(model, X_test, y_test, scaler):
 # =========================
 # MAIN FUNCTION
 # =========================
-def run_cnn_lstm_forecast(ticker, period="4y", forecast_days=5):
+def run_cnn_lstm_forecast(ticker, period="max", forecast_days=5):
 
     if not TF_AVAILABLE:
         return {"success": False, "error": "TensorFlow not installed"}
@@ -193,10 +193,10 @@ def run_cnn_lstm_forecast(ticker, period="4y", forecast_days=5):
 
     return {
         "success": True,
-        "historical_dates": df.index.strftime('%Y-%m-%d').tolist()[-180:],
-        "historical_prices": df['Close'].tolist()[-180:],
-        "predictions": predictions,
-        "prediction_dates": future_dates,
+        "historical_dates": df.index.strftime('%Y-%m-%d').tolist(),
+        "historical_prices": df['Close'].tolist(),
+        "forecast_prices": predictions,
+        "forecast_dates": future_dates,
         **metrics
     }
 

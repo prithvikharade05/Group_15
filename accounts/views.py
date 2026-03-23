@@ -71,3 +71,16 @@ class VerifyMPINView(APIView):
             return Response({"message": "MPIN verified"})
         
         return Response({"error": "Invalid MPIN"}, status=400)
+
+# PROFILE
+class ProfileView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+        return Response({
+            "id": user.id,
+            "username": user.username,
+            "email": getattr(user, 'email', ''),
+            "has_mpin": bool(user.mpin)
+        })

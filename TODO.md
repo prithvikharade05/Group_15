@@ -1,35 +1,24 @@
-# Fix 401 Unauthorized on /api/auth/login/ and /api/auth/register/
+# Fix 404 API Errors - Progress Tracker
 
-**Status:** In progress
+## Step 1: Backend - Add ProfileView [DONE]
+- Edit accounts/views.py: Add ProfileView class ✓
+- Edit accounts/urls.py: Add path('profile/', ProfileView.as_view()), ✓
 
-## Plan Summary
-- DB setup (migrations)
-- Add explicit AllowAny permissions to auth views
-- Test endpoints
-- Verify frontend
+## Step 2: Backend - Add StocksView & ModelsView [DONE]
+- Edit prediction/views.py: Add StocksView (yfinance list), ModelsView (static list) ✓
+- Edit prediction/urls.py: Add paths ✓
 
-## Steps
-### 1. Database migrations
-- [x] python manage.py makemigrations
-- [x] python manage.py migrate
+## Step 3: Backend - Add PortfolioListView [DONE]
+- Edit portfolio/views.py: Add PortfolioListView (mock data) ✓
+- Edit portfolio/urls.py: Add path('', PortfolioListView.as_view()), ✓
 
-### 2. Fix permissions in accounts/views.py
-- [x] Edit accounts/views.py to add `permission_classes = [permissions.AllowAny]` to RegisterView and LoginView
-- [ ] Run migrate if needed
+## Step 4: Frontend - Fix MarketService [DONE]
+- Edit frontend/src/api/service.js: Change '/predict/market/' to '/api/market/' ✓
 
-### 3. Setup test user
-- [ ] python manage.py createsuperuser
+## Step 5: Test [TODO]
+- makemigrations/migrate if needed (no)
+- Restart Django server
+- Refresh frontend, check console no 404s
 
-### 4. Test endpoints
-- [ ] curl test register
-- [ ] curl test login
-
-### 5. Frontend verification
-- [ ] Test login/register in browser
-
-### 6. Full project run
-- [ ] Backend dev server
-- [ ] Frontend npm start
-
-**Status:** Complete - test login/register in browser (localhost:3000)
+Progress: 4/5 complete
 
