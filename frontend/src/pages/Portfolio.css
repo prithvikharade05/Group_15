@@ -77,3 +77,31 @@
     margin-bottom: 0;
     color: #1e293b;
 }
+
+.cluster-btn {
+    background: linear-gradient(135deg, #6a11cb, #2575fc);
+    color: white;
+    padding: 12px 24px;
+    border-radius: 12px;
+    font-weight: bold;
+    border: none;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+.cluster-btn:hover {
+    transform: scale(1.05);
+}
+
+.ai-report {
+    margin-top: 20px;
+    padding: 20px;
+    border-radius: 12px;
+    background: #111;
+    color: white;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+}
+
+.ai-report h3 {
+    margin-bottom: 10px;
+}

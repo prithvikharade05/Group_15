@@ -2,6 +2,16 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import api from '../api/axios';
 import './Portfolio.css';
+import {
+    Chart as ChartJS,
+    LinearScale,
+    PointElement,
+    Tooltip,
+    Legend
+} from 'chart.js';
+import { Scatter } from 'react-chartjs-2';
+
+ChartJS.register(LinearScale, PointElement, Tooltip, Legend);
 
 const Portfolio = () => {
     const navigate = useNavigate();
@@ -14,6 +24,9 @@ const Portfolio = () => {
     const [stockData, setStockData] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+    const [clusterData, setClusterData] = useState(null);
+    const [clusterLoading, setClusterLoading] = useState(false);
+    const [clusterError, setClusterError] = useState(null);
 
     // Fetch live data whenever sector in URL changes
     useEffect(() => {
@@ -60,6 +73,29 @@ const Portfolio = () => {
         }
     };
 
+    const runClusterEngine = async () => {
+        if (!selectedSector || !selectedPortfolio) {
+            setClusterError('Select a portfolio and sector first.');
+            return;
+        }
+        try {
+            setClusterLoading(true);
+            setClusterError(null);
+            const { data } = await api.get('/cluster-data/', {
+                params: {
+                    sector: selectedSector,
+                    portfolio: selectedPortfolio,
+                },
+            });
+            setClusterData(data);
+        } catch (error) {
+            console.error('Cluster error:', error);
+            setClusterError('Failed to run clustering engine');
+        } finally {
+            setClusterLoading(false);
+        }
+    };
+
     const handleSelectSector = (sector) => {
         setSelectedSector(sector);
         setView('stocks');
@@ -90,6 +126,73 @@ const Portfolio = () => {
     const formatVolume = (value) => {
         if (value === null || value === undefined || Number.isNaN(Number(value))) return 'N/A';
         return Number(value).toLocaleString();
+    };
+
+    const getChartData = () => {
+        if (!clusterData || !clusterData.points) return null;
+
+        const strong = [];
+        const weak = [];
+        const neutral = [];
+
+        clusterData.points.forEach(p => {
+            const point = {
+                x: p.change,
+                y: p.volume,
+                label: p.symbol
+            };
+
+            if (p.label === "Strong") strong.push(point);
+            else if (p.label === "Weak") weak.push(point);
+            else neutral.push(point);
+        });
+
+        return {
+            datasets: [
+                {
+                    label: "Strong",
+                    data: strong,
+                    backgroundColor: "green"
+                },
+                {
+                    label: "Weak",
+                    data: weak,
+                    backgroundColor: "red"
+                },
+                {
+                    label: "Neutral",
+                    data: neutral,
+                    backgroundColor: "yellow"
+                }
+            ]
+        };
+    };
+
+    const chartOptions = {
+        scales: {
+            x: {
+                title: {
+                    display: true,
+                    text: "Price Change (%)"
+                }
+            },
+            y: {
+                title: {
+                    display: true,
+                    text: "Volume"
+                }
+            }
+        },
+        plugins: {
+            tooltip: {
+                callbacks: {
+                    label: function (context) {
+                        const label = context.raw.label;
+                        return `${label} | Change: ${context.raw.x}% | Volume: ${context.raw.y}`;
+                    }
+                }
+            }
+        }
     };
 
     const renderOverview = () => (
@@ -163,7 +266,7 @@ const Portfolio = () => {
                             stockData.map((stock) => {
                                 const change = formatChange(stock.change);
                                 return (
-                                    <tr key={stock.symbol || stock.company}>
+                                    <tr key={`${stock.symbol || 'sym'}-${stock.company || 'co'}`}>
                                         <td style={tdStyle}>{stock.company || 'N/A'}</td>
                                         <td style={tdStyle}>{stock.symbol || 'N/A'}</td>
                                         <td style={tdStyle}>{formatPrice(stock.ltp)}</td>
@@ -182,6 +285,42 @@ const Portfolio = () => {
                         )}
                     </tbody>
                 </table>
+            </div>
+
+            <div style={{ marginTop: '20px', textAlign: 'center' }}>
+                <button className="cluster-btn" onClick={() => runClusterEngine()}>
+                    ⚡ Run Advanced Cluster Engine
+                </button>
+                {clusterLoading && <p>Running AI clustering...</p>}
+                {clusterError && <p style={{ color: 'red' }}>{clusterError}</p>}
+                {clusterData && clusterData.points && (
+                    <div style={{ marginTop: '20px' }}>
+                        <h3>📊 Cluster Summary</h3>
+                        <p>Trend: {clusterData.report.trend}</p>
+                        <p>Strong Stocks: {clusterData.report.strong_count}</p>
+                        <p>Weak Stocks: {clusterData.report.weak_count}</p>
+                        <p>Neutral Stocks: {clusterData.report.neutral_count}</p>
+                        <div style={{ marginTop: '30px' }}>
+                            <h3>📊 Cluster Visualization</h3>
+                            {(() => {
+                                const chartData = getChartData();
+                                return chartData && clusterData.points.length > 0 ? (
+                                    <Scatter data={chartData} options={chartOptions} />
+                                ) : null;
+                            })()}
+                        </div>
+                        <div className="ai-report">
+                            <h3>🧠 AI Market Report</h3>
+                            <p>📈 Trend: <b>{clusterData.report.trend}</b></p>
+                            <p>🔥 Strong Stocks: {clusterData.report.strong_count}</p>
+                            <p>🔴 Weak Stocks: {clusterData.report.weak_count}</p>
+                            <p>🟡 Neutral Stocks: {clusterData.report.neutral_count}</p>
+                            <p>🏆 Top Gainer: {clusterData.report.top_gainer}</p>
+                            <p>⚠️ Weakest: {clusterData.report.top_loser}</p>
+                            <p>💡 Insight: {clusterData.report.message}</p>
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     );

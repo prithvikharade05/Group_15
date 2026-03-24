@@ -2,8 +2,10 @@ from prediction.models.arima import run_arima_forecast
 from prediction.models.lstm import run_cnn_lstm_forecast
 from prediction.models.regression import run_regression_forecast
 from prediction.models.clustering import run_clustering_engine
-from .models import Stock
+from .models import Stock, MarketSnapshot, StockSnapshot
 import yfinance as yf
+from django.utils import timezone
+from datetime import timedelta
 
 
 def portfolio_analysis_engine(stocks):
@@ -156,5 +158,42 @@ def fetch_sector_live_data(sector_name, portfolio):
             results.append(result_row)
         except Exception:
             results.append(fallback)
+
+    # Persist snapshot (avoid duplicates within 30 seconds)
+    try:
+        now = timezone.now()
+        recent = MarketSnapshot.objects.filter(
+            sector=sector_name, portfolio=portfolio
+        ).order_by('-timestamp').first()
+
+        if recent and recent.timestamp >= now - timedelta(seconds=30):
+            snapshot = recent
+        else:
+            snapshot = MarketSnapshot.objects.create(
+                sector=sector_name,
+                portfolio=portfolio,
+            )
+
+        stock_snapshots = []
+        for stock in results:
+            volume_val = stock.get("volume")
+            try:
+                volume_val = int(volume_val) if volume_val is not None else None
+            except (TypeError, ValueError):
+                volume_val = None
+
+            stock_snapshots.append(StockSnapshot(
+                snapshot=snapshot,
+                symbol=stock.get("symbol"),
+                ltp=stock.get("ltp"),
+                change=stock.get("change"),
+                volume=volume_val,
+            ))
+
+        if stock_snapshots:
+            StockSnapshot.objects.bulk_create(stock_snapshots)
+    except Exception:
+        # Snapshot persistence is best-effort; fail silently to keep API responsive.
+        pass
 
     return results
