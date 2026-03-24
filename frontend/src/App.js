@@ -10,6 +10,7 @@ import MPIN from "./pages/MPIN";
 import Dashboard from "./pages/Dashboard";
 import StockDetail from "./pages/StockDetail";
 import Landing from "./pages/Landing";
+import Portfolio from "./pages/Portfolio";
 
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -71,6 +72,7 @@ function App() {
             isLoggedIn ? <Dashboard /> : <Login onLogin={handleLogin} />
           } />
           <Route path="/stock/:symbol" element={<StockDetail />} />
+          <Route path="/portfolio" element={<Portfolio />} />
           <Route path="/login" element={<Login onLogin={handleLogin} />} />
           <Route path="/register" element={<Register onLogin={handleLogin} />} />
           <Route path="/mpin" element={<MPIN />} />
