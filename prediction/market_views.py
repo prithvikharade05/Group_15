@@ -1,10 +1,11 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
 import yfinance as yf
 
 class MarketTickerView(APIView):
-    permission_classes = [IsAuthenticated]
+    authentication_classes = []
+    permission_classes = [AllowAny]
 
     def get(self, request):
         symbols = ['^BSESN', '^NSEI', 'RELIANCE.NS', 'TCS.NS', 'HDFCBANK.NS']
@@ -27,7 +28,8 @@ class MarketTickerView(APIView):
         return Response({"success": True, "tickers": data})
 
 class MarketQuoteView(APIView):
-    permission_classes = [IsAuthenticated]
+    authentication_classes = []
+    permission_classes = [AllowAny]
 
     def get(self, request):
         symbol = request.query_params.get("symbol", "RELIANCE").upper()

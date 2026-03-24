@@ -1,15 +1,15 @@
 import API from './axios';
 
 export const MarketService = {
-  getTicker: () => API.get('/api/market/'),
-  getQuote: (symbol) => API.get(`/api/quote/?symbol=${symbol}`),
+  getTicker: () => API.get('/market/'),
+  getQuote: (symbol) => API.get(`/quote/?symbol=${symbol}`),
 };
 
 export const PredictionService = {
-  runArima: (symbol, days) => API.post('/predict/arima/', { symbol, days }),
-  runLstm: (symbol, days) => API.post('/predict/lstm/', { symbol, days }),
-  runRegression: (symbol, days) => API.post('/predict/regression/', { symbol, days }),
-  runCluster: (stocks) => API.post('/predict/cluster/', { stocks }),
+  runArima: (symbol, days) => API.post('/arima/', { symbol, days }),
+  runLstm: (symbol, days) => API.post('/lstm/', { symbol, days }),
+  runRegression: (symbol, days) => API.post('/regression/', { symbol, days }),
+  runCluster: (stocks) => API.post('/cluster/', { stocks }),
 };
 
 export const PortfolioService = {

@@ -23,8 +23,9 @@ function Register() {
       await API.post("/auth/register/", { username, password });
       alert("Account Created ✅");
       navigate("/");
-    } catch {
-      alert("Registration Error ❌");
+    } catch (err) {
+      const errorMsg = err.response?.data?.username?.[0] || err.response?.data?.detail || "Registration Error ❌";
+      alert(errorMsg);
     } finally {
       setIsLoading(false);
     }

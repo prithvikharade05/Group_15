@@ -23,38 +23,18 @@ const MarketStrip = () => {
   useEffect(() => {
     const fetchTickers = async () => {
       try {
-        // Fetch market data for Nifty 50 stocks
-        const promises = nifty50Stocks.map(async (symbol) => {
-          try {
-            const res = await MarketService.getQuote(symbol.replace('.NS', ''));
-            if (res.data.success) {
-              return {
-                symbol: res.data.symbol,
-                price: res.data.price,
-                change: res.data.change_pct,
-                change_val: res.data.change_val,
-                volume: res.data.volume
-              };
-            }
-          } catch (e) {
-            // Fallback to basic market data
-            const marketRes = await MarketService.getTicker();
-            if (marketRes.data.success) {
-              return marketRes.data.tickers.find(t => t.symbol === symbol.replace('.NS', ''));
-            }
+        const response = await MarketService.getTicker();
+        if (response.data.success) {
+          const allTickers = response.data.tickers || [];
+          const symbolsToMatch = nifty50Stocks.map(s => s.replace('.NS', ''));
+          
+          const validTickers = allTickers
+            .filter(t => symbolsToMatch.includes(t.symbol))
+            .sort((a, b) => Math.abs(b.change) - Math.abs(a.change));
+            
+          if (validTickers.length > 0) {
+            setTickers(validTickers);
           }
-          return null;
-        });
-
-        const results = await Promise.allSettled(promises);
-        const validTickers = results
-          .filter(result => result.status === 'fulfilled' && result.value)
-          .map(result => result.value)
-          .filter(Boolean)
-          .sort((a, b) => Math.abs(b.change) - Math.abs(a.change)); // Sort by change magnitude
-
-        if (validTickers.length > 0) {
-          setTickers(validTickers);
         }
       } catch (e) {
         console.error("Market strip error", e);

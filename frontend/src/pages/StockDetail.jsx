@@ -25,7 +25,7 @@ const StockDetail = () => {
   const fetchStockData = async () => {
     try {
       setLoading(true);
-      const response = await axios.get(`/api/stocks/${symbol}/`);
+      const response = await axios.get(`/stocks/${symbol}/`);
       setStockData(response.data);
     } catch (error) {
       console.error('Error fetching stock data:', error);
@@ -37,7 +37,7 @@ const StockDetail = () => {
 
   const fetchPredictions = async () => {
     try {
-      const response = await axios.get(`/api/predictions/${symbol}/`);
+      const response = await axios.get(`/predictions/${symbol}/`);
       setPredictions(response.data);
     } catch (error) {
       console.error('Error fetching predictions:', error);
@@ -46,7 +46,7 @@ const StockDetail = () => {
 
   const fetchModels = async () => {
     try {
-      const response = await axios.get('/api/models/');
+      const response = await axios.get('/models/');
       setModels(response.data);
     } catch (error) {
       console.error('Error fetching models:', error);
@@ -60,7 +60,7 @@ const StockDetail = () => {
     }
 
     try {
-      await axios.post('/api/predictions/', {
+      await axios.post('/predictions/', {
         symbol,
         model: selectedModel
       });

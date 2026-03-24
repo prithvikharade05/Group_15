@@ -31,7 +31,7 @@ const Dashboard = () => {
 
   const fetchStocks = async () => {
     try {
-      const response = await axios.get('/api/stocks/');
+      const response = await axios.get('/stocks/');
       setStocks(response.data);
     } catch (error) {
       console.error('Error fetching stocks:', error);
@@ -43,7 +43,7 @@ const Dashboard = () => {
 
   const fetchModels = async () => {
     try {
-      const response = await axios.get('/api/models/');
+      const response = await axios.get('/models/');
       setModels(response.data);
     } catch (error) {
       console.error('Error fetching models:', error);
@@ -52,7 +52,7 @@ const Dashboard = () => {
 
   const fetchPortfolio = async () => {
     try {
-      const response = await axios.get('/api/portfolio/');
+      const response = await axios.get('/portfolio/');
       setPortfolio(response.data);
     } catch (error) {
       console.error('Error fetching portfolio:', error);
@@ -66,14 +66,14 @@ const Dashboard = () => {
     }
 
     try {
-      const response = await axios.post('/api/models/run/', {
+      const response = await axios.post('/models/run/', {
         model: model.name,
         symbol: selectedStock,
         days: 5
       });
 
       // Refresh predictions
-      const predResponse = await axios.get(`/api/predictions/${selectedStock}/`);
+      const predResponse = await axios.get(`/predictions/${selectedStock}/`);
       setPredictions(predResponse.data);
 
       alert('Model executed successfully!');
@@ -85,7 +85,7 @@ const Dashboard = () => {
 
   const handleAddToPortfolio = async (symbol) => {
     try {
-      await axios.post('/api/portfolio/add/', { symbol });
+      await axios.post('/portfolio/add/', { symbol });
       fetchPortfolio();
       alert(`${symbol} added to portfolio!`);
     } catch (error) {
@@ -103,7 +103,7 @@ const Dashboard = () => {
     setChatInput('');
 
     try {
-      const response = await axios.post('/api/chat/', { message: chatInput });
+      const response = await axios.post('/chat/', { message: chatInput });
       const botMessage = { type: 'bot', text: response.data.response };
       setChatMessages(prev => [...prev, botMessage]);
     } catch (error) {

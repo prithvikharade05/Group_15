@@ -29,16 +29,19 @@ function App() {
 
   const fetchUserProfile = async () => {
     try {
-      const response = await axios.get('/api/auth/profile/');
+      const response = await axios.get('/auth/profile/');
       setUser(response.data);
+      setIsLoggedIn(true);
     } catch (error) {
       console.error('Error fetching user profile:', error);
+      setIsLoggedIn(false);
+      localStorage.removeItem('token');
     }
   };
 
   const fetchMarketData = async () => {
     try {
-      const response = await axios.get('/api/market/');
+      const response = await axios.get('/market/');
       setMarketData(response.data);
     } catch (error) {
       console.error('Error fetching market data:', error);
@@ -71,7 +74,7 @@ function App() {
           } />
           <Route path="/stock/:symbol" element={<StockDetail />} />
           <Route path="/login" element={<Login onLogin={handleLogin} />} />
-          <Route path="/register" element={<Register />} />
+          <Route path="/register" element={<Register onLogin={handleLogin} />} />
           <Route path="/mpin" element={<MPIN />} />
         </Routes>
       </div>

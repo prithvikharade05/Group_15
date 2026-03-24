@@ -11,7 +11,7 @@ const particles = Array.from({ length: 40 }, (_, i) => ({
   speed: Math.random() * 0.5 + 0.1
 }));
 
-function Login() {
+function Login({ onLogin }) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -22,9 +22,11 @@ function Login() {
     try {
       const res = await API.post("/auth/login/", { username, password });
       localStorage.setItem("token", res.data.access);
+      if (onLogin) onLogin(res.data);
       navigate("/mpin");
     } catch (err) {
-      alert("Login Failed ❌");
+      const errorMsg = err.response?.data?.error || err.response?.data?.detail || "Login Failed ❌";
+      alert(errorMsg);
     } finally {
       setIsLoading(false);
     }
