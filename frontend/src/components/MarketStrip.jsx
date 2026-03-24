@@ -55,6 +55,7 @@ const MarketStrip = () => {
   if (tickers.length === 0) return null;
 
   const formatPrice = (price) => {
+    if (price === undefined || price === null) return '0.00';
     if (price >= 1000) {
       return `₹${(price / 1000).toFixed(2)}K`;
     } else if (price >= 100000) {
@@ -66,6 +67,7 @@ const MarketStrip = () => {
   };
 
   const formatVolume = (volume) => {
+    if (volume === undefined || volume === null) return '0';
     if (volume >= 10000000) {
       return `${(volume / 10000000).toFixed(1)}Cr`;
     } else if (volume >= 100000) {
@@ -123,14 +125,14 @@ const MarketStrip = () => {
                     {formatPrice(ticker.price)}
                   </span>
                   <span className="text-slate-400 text-sm font-medium font-mono">
-                    {ticker.change_val >= 0 ? '+' : ''}{ticker.change_val.toFixed(2)}
+                    {ticker.change_val !== undefined && ticker.change_val !== null ? (ticker.change_val >= 0 ? '+' : '') + ticker.change_val.toFixed(2) : '0.00'}
                   </span>
                 </div>
 
                 {/* Change with premium gradient */}
                 <div className={`px-3 py-1 rounded-full border ${bgColor} border-current/20`}>
                   <span className={`font-bold text-sm font-mono bg-gradient-to-r ${changeColor} bg-clip-text text-transparent`}>
-                    {isPositive ? '▲' : '▼'} {isPositive ? '+' : ''}{ticker.change.toFixed(2)}%
+                    {isPositive ? '▲' : '▼'} {ticker.change !== undefined && ticker.change !== null ? (ticker.change >= 0 ? '+' : '') + ticker.change.toFixed(2) : '0.00'}%
                   </span>
                 </div>
 
