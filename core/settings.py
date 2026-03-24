@@ -99,7 +99,7 @@ DATABASES = {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': 'alphamind_db',
         'USER': 'postgres',
-        'PASSWORD': 'bhairavi',
+        'PASSWORD': 'prithvi',
         'HOST': 'localhost',
         'PORT': '5432',
     }
