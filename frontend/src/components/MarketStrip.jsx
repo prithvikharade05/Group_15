@@ -102,8 +102,12 @@ const MarketStrip = () => {
       {/* Main Ticker */}
       <div className="relative">
         <div className="flex animate-[ticker_20s_linear_infinite] whitespace-nowrap">
+          {/* ANTIGRAVITY FIX: Added super-safe guards for ticker data */}
           {[...tickers, ...tickers, ...tickers].map((ticker, index) => {
-            const isPositive = ticker.change >= 0;
+            if (!ticker) return null;
+            const change = ticker.change || 0;
+            const changeVal = ticker.change_val || 0;
+            const isPositive = change >= 0;
             const changeColor = isPositive ? 'from-emerald-400 to-emerald-600' : 'from-red-400 to-red-600';
             const bgColor = isPositive ? 'bg-emerald-500/10' : 'bg-red-500/10';
 
@@ -112,7 +116,7 @@ const MarketStrip = () => {
                 {/* Symbol with premium styling */}
                 <div className="flex flex-col">
                   <span className="text-white font-bold text-lg tracking-wide font-mono group-hover:text-purple-300 transition-colors">
-                    {ticker.symbol}
+                    {ticker.symbol || 'N/A'}
                   </span>
                   <span className="text-slate-400 text-sm font-medium tracking-wide opacity-0 group-hover:opacity-100 transition-opacity">
                     {formatVolume(ticker.volume)} vol
@@ -125,14 +129,14 @@ const MarketStrip = () => {
                     {formatPrice(ticker.price)}
                   </span>
                   <span className="text-slate-400 text-sm font-medium font-mono">
-                    {ticker.change_val !== undefined && ticker.change_val !== null ? (ticker.change_val >= 0 ? '+' : '') + ticker.change_val.toFixed(2) : '0.00'}
+                    {changeVal >= 0 ? '+' : ''}{Number(changeVal).toFixed(2)}
                   </span>
                 </div>
 
                 {/* Change with premium gradient */}
                 <div className={`px-3 py-1 rounded-full border ${bgColor} border-current/20`}>
                   <span className={`font-bold text-sm font-mono bg-gradient-to-r ${changeColor} bg-clip-text text-transparent`}>
-                    {isPositive ? '▲' : '▼'} {ticker.change !== undefined && ticker.change !== null ? (ticker.change >= 0 ? '+' : '') + ticker.change.toFixed(2) : '0.00'}%
+                    {isPositive ? '▲' : '▼'} {change >= 0 ? '+' : ''}{Number(change).toFixed(2)}%
                   </span>
                 </div>
 
