@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import axios from './api/axios';
 import './App.css';
+import Navbar from './components/Navbar';
+import MarketStrip from './components/MarketStrip';
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import MPIN from "./pages/MPIN";
@@ -61,6 +63,8 @@ function App() {
   return (
     <Router>
       <div className="App">
+        <Navbar isLoggedIn={isLoggedIn} onLogout={handleLogout} />
+        <MarketStrip data={marketData} loading={loading} />
         <Routes>
           <Route path="/" element={<Landing />} />
           <Route path="/dashboard" element={
