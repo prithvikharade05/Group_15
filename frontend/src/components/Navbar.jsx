@@ -52,8 +52,8 @@ const Navbar = () => {
 
         {/* Right: Navigation Links */}
         <nav className="hidden md:flex items-center space-x-8">
-          <Link to="/" className="text-slate-600 hover:text-purple-600 text-base font-semibold transition-all duration-300 hover:scale-105 transform font-inter tracking-wide">Dashboards</Link>
-          <Link to="/" className="text-slate-600 hover:text-purple-600 text-base font-semibold transition-all duration-300 hover:scale-105 transform font-inter tracking-wide">Models</Link>
+          <Link to="/home" className="text-slate-600 hover:text-purple-600 text-base font-semibold transition-all duration-300 hover:scale-105 transform font-inter tracking-wide">Dashboards</Link>
+          <Link to="/dashboard" className="text-slate-600 hover:text-purple-600 text-base font-semibold transition-all duration-300 hover:scale-105 transform font-inter tracking-wide">Models</Link>
           <Link to="/" className="text-slate-600 hover:text-purple-600 text-base font-semibold transition-all duration-300 hover:scale-105 transform font-inter tracking-wide">Portfolio</Link>
           <Link to="/" className="text-slate-600 hover:text-purple-600 text-base font-semibold transition-all duration-300 hover:scale-105 transform font-inter tracking-wide">AI Insights</Link>
 

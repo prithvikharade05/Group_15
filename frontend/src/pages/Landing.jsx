@@ -16,7 +16,7 @@ const Landing = () => {
                             AI insights, and institutional-grade analytics.
                         </p>
                         <div className="hero-cta">
-                            <Link to="/dashboard" className="btn-primary">Launch Dashboard</Link>
+                            <Link to="/home" className="btn-primary">Launch Dashboard</Link>
                             <Link to="/dashboard" className="btn-secondary">Explore Models</Link>
                         </div>
                     </div>
