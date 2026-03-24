@@ -1,44 +1,95 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+import api from '../api/axios';
 import './Portfolio.css';
 
 const Portfolio = () => {
+    const navigate = useNavigate();
+    const { sector: sectorParam } = useParams();
+
     const [view, setView] = useState('overview');
     const [selectedPortfolio, setSelectedPortfolio] = useState('');
-    const [sectors, setSectors] = useState([]);
-    const [stocks, setStocks] = useState([]);
     const [selectedSector, setSelectedSector] = useState('');
+    const [sectors, setSectors] = useState([]);
+    const [stockData, setStockData] = useState([]);
     const [loading, setLoading] = useState(false);
+    const [error, setError] = useState('');
+
+    // Fetch live data whenever sector in URL changes
+    useEffect(() => {
+        if (sectorParam) {
+            const decodedSector = decodeURIComponent(sectorParam);
+            setSelectedSector(decodedSector);
+            setView('stocks');
+            fetchSectorData(decodedSector, selectedPortfolio || 'NIFTY200');
+        }
+    }, [sectorParam]);
 
     const fetchSectors = async (portfolio) => {
         setLoading(true);
+        setError('');
         try {
-            const response = await fetch(`http://127.0.0.1:8000/api/sectors/?portfolio=${portfolio}`);
-            const data = await response.json();
-            setSectors(data);
+            const { data } = await api.get('/sectors/', { params: { portfolio } });
+            setSectors(Array.isArray(data) ? data : []);
             setSelectedPortfolio(portfolio);
             setView('sectors');
-        } catch (error) {
-            console.error('Error fetching sectors:', error);
+            navigate('/portfolio'); // reset URL to base when browsing sectors
+        } catch (err) {
+            console.error('Error fetching sectors:', err);
+            setError('Unable to load sectors right now.');
         } finally {
             setLoading(false);
         }
     };
 
-    const fetchStocks = async (sector) => {
+    const fetchSectorData = async (sector, portfolioValue) => {
         setLoading(true);
+        setError('');
         try {
-            const response = await fetch(
-                `http://127.0.0.1:8000/api/stocks/?portfolio=${selectedPortfolio}&sector=${encodeURIComponent(sector)}`
-            );
-            const data = await response.json();
-            setStocks(data);
-            setSelectedSector(sector);
-            setView('stocks');
-        } catch (error) {
-            console.error('Error fetching stocks:', error);
+            const { data } = await api.get('/sector-data/', {
+                params: { sector, portfolio: portfolioValue },
+            });
+            setStockData(Array.isArray(data) ? data : []);
+        } catch (err) {
+            console.error('Error fetching live sector data:', err);
+            const apiMessage = err.response?.data?.error;
+            setError(apiMessage || 'Failed to load live data. Please try again.');
+            setStockData([]);
         } finally {
             setLoading(false);
         }
+    };
+
+    const handleSelectSector = (sector) => {
+        setSelectedSector(sector);
+        setView('stocks');
+        navigate(`/portfolio/${encodeURIComponent(sector)}`);
+        fetchSectorData(sector, selectedPortfolio);
+    };
+
+    const formatNumber = (value, decimals = 2) => {
+        if (value === null || value === undefined || Number.isNaN(Number(value))) return 'N/A';
+        return Number(value).toFixed(decimals);
+    };
+
+    const formatPrice = (value) => {
+        if (value === null || value === undefined || Number.isNaN(Number(value))) return 'N/A';
+        return `₹${Number(value).toFixed(2)}`;
+    };
+
+    const formatChange = (value) => {
+        if (value === null || value === undefined || Number.isNaN(Number(value))) {
+            return { text: 'N/A', color: 'inherit' };
+        }
+        const num = Number(value);
+        const text = `${num >= 0 ? '+' : ''}${num.toFixed(2)}%`;
+        const color = num > 0 ? '#16a34a' : num < 0 ? '#dc2626' : 'inherit';
+        return { text, color };
+    };
+
+    const formatVolume = (value) => {
+        if (value === null || value === undefined || Number.isNaN(Number(value))) return 'N/A';
+        return Number(value).toLocaleString();
     };
 
     const renderOverview = () => (
@@ -62,11 +113,11 @@ const Portfolio = () => {
             </button>
             <h2 className="portfolio-title">{selectedPortfolio} - Sectors</h2>
             <div className="portfolio-grid">
-                {sectors.map((sector, index) => (
+                {sectors.map((sector) => (
                     <div
-                        key={index}
+                        key={sector}
                         className="portfolio-card sector-card"
-                        onClick={() => fetchStocks(sector)}
+                        onClick={() => handleSelectSector(sector)}
                     >
                         <h3>{sector}</h3>
                     </div>
@@ -77,10 +128,21 @@ const Portfolio = () => {
 
     const renderStocksView = () => (
         <div>
-            <button className="back-button" onClick={() => setView('sectors')}>
-                ← Back to Sectors
-            </button>
-            <h2 className="portfolio-title">{selectedPortfolio} - {selectedSector}</h2>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <button className="back-button" onClick={() => setView('sectors')}>
+                    ← Back to Sectors
+                </button>
+                <div>
+                    <button className="refresh-button" onClick={() => fetchSectorData(selectedSector, selectedPortfolio)}>
+                        Refresh
+                    </button>
+                </div>
+            </div>
+            <h2 className="portfolio-title">
+                {selectedPortfolio && `${selectedPortfolio} - `}{selectedSector}
+            </h2>
+
+            {error && <p style={{ color: '#dc2626' }}>{error}</p>}
 
             <div style={{ overflowX: 'auto', marginTop: '20px' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse', background: '#fff' }}>
@@ -97,18 +159,27 @@ const Portfolio = () => {
                         </tr>
                     </thead>
                     <tbody>
-                        {Array.isArray(stocks) && stocks.map((stock, index) => (
-                            <tr key={index}>
-                                <td style={tdStyle}>{stock.company}</td>
-                                <td style={tdStyle}>{stock.symbol}</td>
-                                <td style={tdStyle}>{stock.ltp ?? '-'}</td>
-                                <td style={tdStyle}>{stock.change_percent ?? '-'}</td>
-                                <td style={tdStyle}>{stock.market_cap || '-'}</td>
-                                <td style={tdStyle}>{stock.high_52w ?? '-'}</td>
-                                <td style={tdStyle}>{stock.low_52w ?? '-'}</td>
-                                <td style={tdStyle}>{stock.volume || '-'}</td>
+                        {Array.isArray(stockData) && stockData.length > 0 ? (
+                            stockData.map((stock) => {
+                                const change = formatChange(stock.change);
+                                return (
+                                    <tr key={stock.symbol || stock.company}>
+                                        <td style={tdStyle}>{stock.company || 'N/A'}</td>
+                                        <td style={tdStyle}>{stock.symbol || 'N/A'}</td>
+                                        <td style={tdStyle}>{formatPrice(stock.ltp)}</td>
+                                        <td style={{ ...tdStyle, color: change.color }}>{change.text}</td>
+                                        <td style={tdStyle}>{stock.market_cap || 'N/A'}</td>
+                                        <td style={tdStyle}>{formatNumber(stock.high_52w)}</td>
+                                        <td style={tdStyle}>{formatNumber(stock.low_52w)}</td>
+                                        <td style={tdStyle}>{formatVolume(stock.volume)}</td>
+                                    </tr>
+                                );
+                            })
+                        ) : (
+                            <tr>
+                                <td style={tdStyle} colSpan={8}>No data available.</td>
                             </tr>
-                        ))}
+                        )}
                     </tbody>
                 </table>
             </div>
