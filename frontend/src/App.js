@@ -73,6 +73,7 @@ function App() {
           } />
           <Route path="/stock/:symbol" element={<StockDetail />} />
           <Route path="/portfolio" element={<Portfolio />} />
+          <Route path="/portfolio/:sector" element={<Portfolio />} />
           <Route path="/login" element={<Login onLogin={handleLogin} />} />
           <Route path="/register" element={<Register onLogin={handleLogin} />} />
           <Route path="/mpin" element={<MPIN />} />
