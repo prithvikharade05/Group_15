@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import axios from './api/axios';
 import './App.css';
@@ -18,16 +18,7 @@ function App() {
   const [marketData, setMarketData] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      setIsLoggedIn(true);
-      fetchUserProfile();
-    }
-    fetchMarketData();
-  }, []);
-
-  const fetchUserProfile = async () => {
+  const fetchUserProfile = useCallback(async () => {
     try {
       const response = await axios.get('/auth/profile/');
       setUser(response.data);
@@ -37,9 +28,9 @@ function App() {
       setIsLoggedIn(false);
       localStorage.removeItem('token');
     }
-  };
+  }, []);
 
-  const fetchMarketData = async () => {
+  const fetchMarketData = useCallback(async () => {
     try {
       const response = await axios.get('/market/');
       setMarketData(response.data);
@@ -48,7 +39,18 @@ function App() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      setIsLoggedIn(true);
+      fetchUserProfile();
+    } else {
+      setIsLoggedIn(false);
+    }
+    fetchMarketData();
+  }, [fetchUserProfile, fetchMarketData]);
 
   const handleLogin = (userData) => {
     setIsLoggedIn(true);

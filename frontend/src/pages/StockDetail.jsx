@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from '../api/axios';
 import Chart from '../components/Chart';
@@ -16,13 +16,7 @@ const StockDetail = () => {
   const [predictions, setPredictions] = useState([]);
   const [models, setModels] = useState([]);
 
-  useEffect(() => {
-    fetchStockData();
-    fetchPredictions();
-    fetchModels();
-  }, [symbol]);
-
-  const fetchStockData = async () => {
+  const fetchStockData = useCallback(async () => {
     try {
       setLoading(true);
       const response = await axios.get(`/stocks/${symbol}/`);
@@ -33,25 +27,31 @@ const StockDetail = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [symbol]);
 
-  const fetchPredictions = async () => {
+  const fetchPredictions = useCallback(async () => {
     try {
       const response = await axios.get(`/predictions/${symbol}/`);
       setPredictions(response.data);
     } catch (error) {
       console.error('Error fetching predictions:', error);
     }
-  };
+  }, [symbol]);
 
-  const fetchModels = async () => {
+  const fetchModels = useCallback(async () => {
     try {
       const response = await axios.get('/models/');
       setModels(response.data);
     } catch (error) {
       console.error('Error fetching models:', error);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchStockData();
+    fetchPredictions();
+    fetchModels();
+  }, [symbol, fetchStockData, fetchPredictions, fetchModels]);
 
   const handleRunPrediction = async () => {
     if (!selectedModel) {
@@ -107,7 +107,7 @@ const StockDetail = () => {
       {/* Header */}
       <header className="stock-header">
         <button onClick={() => navigate('/dashboard')} className="back-btn">
-          ← Back to Dashboard
+          Back to Dashboard
         </button>
         <div className="stock-info">
           <h1>{stockData.symbol}</h1>
