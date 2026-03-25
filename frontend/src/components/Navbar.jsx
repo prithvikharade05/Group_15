@@ -55,7 +55,7 @@ const Navbar = () => {
           <Link to="/" className="text-slate-600 hover:text-purple-600 text-base font-semibold transition-all duration-300 hover:scale-105 transform font-inter tracking-wide">Dashboards</Link>
           <Link to="/dashboard" className="text-slate-600 hover:text-purple-600 text-base font-semibold transition-all duration-300 hover:scale-105 transform font-inter tracking-wide">Models</Link>
           <Link to="/portfolio" className="text-slate-600 hover:text-purple-600 text-base font-semibold transition-all duration-300 hover:scale-105 transform font-inter tracking-wide">Portfolio</Link>
-          <Link to="/" className="text-slate-600 hover:text-purple-600 text-base font-semibold transition-all duration-300 hover:scale-105 transform font-inter tracking-wide">AI Insights</Link>
+          <Link to="/sentiment-analysis" className="text-slate-600 hover:text-purple-600 text-base font-semibold transition-all duration-300 hover:scale-105 transform font-inter tracking-wide">Sentiment Analysis</Link>
 
           <div className="w-px h-8 bg-gradient-to-b from-transparent via-purple-300 to-transparent mx-4" />
 
