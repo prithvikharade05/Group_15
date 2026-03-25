@@ -242,6 +242,14 @@ const Portfolio = () => {
           <button className="refresh-button" onClick={() => fetchSectorData(selectedSector, selectedPortfolio)}>
             Refresh
           </button>
+          <button
+            className="cluster-btn"
+            style={{ marginLeft: 8 }}
+            disabled={!selectedSector}
+            onClick={() => navigate(`/sector-sentiment/${encodeURIComponent(selectedSector || '')}`)}
+          >
+            🧠 Sector Sentiment Analysis
+          </button>
         </div>
       </div>
       <h2 className="portfolio-title">

@@ -11,6 +11,7 @@ import Dashboard from "./pages/Dashboard";
 import StockDetail from "./pages/StockDetail";
 import Landing from "./pages/Landing";
 import Portfolio from "./pages/Portfolio";
+import SectorSentiment from "./pages/SectorSentiment";
 
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -76,6 +77,7 @@ function App() {
           <Route path="/stock/:symbol" element={<StockDetail />} />
           <Route path="/portfolio" element={<Portfolio />} />
           <Route path="/portfolio/:sector" element={<Portfolio />} />
+          <Route path="/sector-sentiment/:sector" element={<SectorSentiment />} />
           <Route path="/login" element={<Login onLogin={handleLogin} />} />
           <Route path="/register" element={<Register onLogin={handleLogin} />} />
           <Route path="/mpin" element={<MPIN />} />
