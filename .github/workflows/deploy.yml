@@ -1,0 +1,30 @@
+name: Deploy to Azure VM
+
+on:
+  push:
+    branches:
+      - bhairavi-frontend
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy to VM
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: 104.208.82.28
+          username: azureuser
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            cd ~/Group_15
+            git pull origin bhairavi-frontend
+
+            cd frontend
+            npm install
+            npm run build
+
+            sudo rm -rf /var/www/html/*
+            sudo cp -r build/* /var/www/html/
+
+            pm2 restart backend
