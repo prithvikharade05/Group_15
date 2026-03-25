@@ -234,42 +234,40 @@ const Portfolio = () => {
 
   const renderStocksView = () => (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <button className="back-button" onClick={() => setView('sectors')}>
-          Back to Sectors
-        </button>
-        <div>
-          <button className="refresh-button" onClick={() => fetchSectorData(selectedSector, selectedPortfolio)}>
-            Refresh
+      <div className="stocks-header">
+        <div className="header-left">
+          <button className="back-button" onClick={() => setView('sectors')}>
+            Back to Sectors
           </button>
-          <button
-            className="cluster-btn"
-            style={{ marginLeft: 8 }}
-            disabled={!selectedSector}
-            onClick={() => navigate(`/sector-sentiment/${encodeURIComponent(selectedSector || '')}`)}
-          >
-            🧠 Sector Sentiment Analysis
-          </button>
+          <div className="header-titles">
+            <h2 className="portfolio-title">
+              {selectedPortfolio && `${selectedPortfolio} - `}{selectedSector}
+            </h2>
+            <p className="portfolio-subtitle">Live Market Data</p>
+          </div>
         </div>
+        <button
+          className="refresh-button"
+          onClick={() => fetchSectorData(selectedSector, selectedPortfolio)}
+        >
+          Refresh
+        </button>
       </div>
-      <h2 className="portfolio-title">
-        {selectedPortfolio && `${selectedPortfolio} - `}{selectedSector}
-      </h2>
 
-      {error && <p style={{ color: '#dc2626' }}>{error}</p>}
+      {error && <p className="error-text">{error}</p>}
 
-      <div style={{ overflowX: 'auto', marginTop: '20px' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', background: '#fff' }}>
+      <div className="table-wrapper">
+        <table className="stocks-table">
           <thead>
             <tr>
-              <th style={thStyle}>Company</th>
-              <th style={thStyle}>Symbol</th>
-              <th style={thStyle}>LTP</th>
-              <th style={thStyle}>Change %</th>
-              <th style={thStyle}>Market Cap</th>
-              <th style={thStyle}>52W High</th>
-              <th style={thStyle}>52W Low</th>
-              <th style={thStyle}>Volume</th>
+              <th>Company</th>
+              <th>Symbol</th>
+              <th>LTP</th>
+              <th>Change %</th>
+              <th>Market Cap</th>
+              <th>52W High</th>
+              <th>52W Low</th>
+              <th>Volume</th>
             </tr>
           </thead>
           <tbody>
@@ -278,86 +276,92 @@ const Portfolio = () => {
                 const change = formatChange(stock.change);
                 return (
                   <tr key={`${stock.symbol || 'sym'}-${stock.company || 'co'}`}>
-                    <td style={tdStyle}>{stock.company || 'N/A'}</td>
-                    <td style={tdStyle}>{stock.symbol || 'N/A'}</td>
-                    <td style={tdStyle}>{formatPrice(stock.ltp)}</td>
-                    <td style={{ ...tdStyle, color: change.color }}>{change.text}</td>
-                    <td style={tdStyle}>{stock.market_cap || 'N/A'}</td>
-                    <td style={tdStyle}>{formatNumber(stock.high_52w)}</td>
-                    <td style={tdStyle}>{formatNumber(stock.low_52w)}</td>
-                    <td style={tdStyle}>{formatVolume(stock.volume)}</td>
+                    <td>{stock.company || 'N/A'}</td>
+                    <td>{stock.symbol || 'N/A'}</td>
+                    <td>{formatPrice(stock.ltp)}</td>
+                    <td style={{ color: change.color }}>{change.text}</td>
+                    <td>{stock.market_cap || 'N/A'}</td>
+                    <td>{formatNumber(stock.high_52w)}</td>
+                    <td>{formatNumber(stock.low_52w)}</td>
+                    <td>{formatVolume(stock.volume)}</td>
                   </tr>
                 );
               })
             ) : (
               <tr>
-                <td style={tdStyle} colSpan={8}>No data available.</td>
+                <td colSpan={8} style={{ textAlign: 'center' }}>
+                  No data available.
+                </td>
               </tr>
             )}
           </tbody>
         </table>
       </div>
 
-      <div style={{ marginTop: '20px', textAlign: 'center' }}>
+      <hr className="section-divider" />
+
+      <div className="action-buttons">
         <button className="cluster-btn" onClick={() => runClusterEngine()}>
-          Run Advanced Cluster Engine
+          {'\u26A1'} Run Advanced Cluster Engine
         </button>
-        {clusterLoading && <p>Running AI clustering...</p>}
-        {clusterError && <p style={{ color: 'red' }}>{clusterError}</p>}
-        {clusterData && Array.isArray(clusterData.points) && clusterData.points.length > 0 && (
-          <div style={{ marginTop: '20px' }}>
-            <h3>Cluster Summary</h3>
+        <button
+          className="sentiment-btn"
+          disabled={!selectedSector}
+          onClick={() => navigate(`/sector-sentiment/${encodeURIComponent(selectedSector || '')}`)}
+        >
+          {'\uD83E\uDDE0'} Sector Sentiment Analysis
+        </button>
+      </div>
+
+      {clusterLoading && <p className="info-text">Running AI clustering...</p>}
+      {clusterError && <p className="error-text">{clusterError}</p>}
+
+      {clusterData && Array.isArray(clusterData.points) && clusterData.points.length > 0 && (
+        <div className="cluster-section">
+          <h3 className="section-title">Cluster Summary</h3>
+          <div className="cluster-summary">
             <p>Trend: {clusterReport.trend || 'N/A'}</p>
             <p>Strong Stocks: {clusterReport.strong_count ?? 'N/A'}</p>
             <p>Weak Stocks: {clusterReport.weak_count ?? 'N/A'}</p>
             <p>Neutral Stocks: {clusterReport.neutral_count ?? 'N/A'}</p>
-            <div style={{ marginTop: '30px' }}>
-              <h3>Cluster Visualization</h3>
-              {(() => {
-                const chartData = getChartData();
-                return chartData ? <Scatter data={chartData} options={chartOptions} /> : null;
-              })()}
-            </div>
-            <div className="ai-report">
-              <h3>AI Market Report</h3>
-              <p>Trend: <b>{clusterReport.trend || 'N/A'}</b></p>
-              <p>Strong Stocks: {clusterReport.strong_count ?? 'N/A'}</p>
-              <p>Weak Stocks: {clusterReport.weak_count ?? 'N/A'}</p>
-              <p>Neutral Stocks: {clusterReport.neutral_count ?? 'N/A'}</p>
-              <p>Top Gainer: {clusterReport.top_gainer || 'N/A'}</p>
-              <p>Weakest: {clusterReport.top_loser || 'N/A'}</p>
-              <p>Insight: {clusterReport.message || 'N/A'}</p>
-            </div>
           </div>
-        )}
-      </div>
+
+          <div className="cluster-visual">
+            <h3>Cluster Visualization</h3>
+            {(() => {
+              const chartData = getChartData();
+              return chartData ? <Scatter data={chartData} options={chartOptions} /> : null;
+            })()}
+          </div>
+
+          <div className="ai-report">
+            <h3>AI Market Report</h3>
+            <p>Trend: <b>{clusterReport.trend || 'N/A'}</b></p>
+            <p>Strong Stocks: {clusterReport.strong_count ?? 'N/A'}</p>
+            <p>Weak Stocks: {clusterReport.weak_count ?? 'N/A'}</p>
+            <p>Neutral Stocks: {clusterReport.neutral_count ?? 'N/A'}</p>
+            <p>Top Gainer: {clusterReport.top_gainer || 'N/A'}</p>
+            <p>Weakest: {clusterReport.top_loser || 'N/A'}</p>
+            <p>Insight: {clusterReport.message || 'N/A'}</p>
+          </div>
+        </div>
+      )}
     </div>
   );
 
   return (
-    <div className="portfolio-container">
-      <h1 className="portfolio-title">Your Portfolios</h1>
+    <div className="portfolio-page">
+      <div className="portfolio-container">
+        <h1 className="portfolio-title main-title">Your Portfolios</h1>
 
-      {loading && <p>Loading...</p>}
+        {loading && <p>Loading...</p>}
 
-      {!loading && view === 'overview' && renderOverview()}
-      {!loading && view === 'sectors' && renderSectorView()}
-      {!loading && view === 'stocks' && renderStocksView()}
+        {!loading && view === 'overview' && renderOverview()}
+        {!loading && view === 'sectors' && renderSectorView()}
+        {!loading && view === 'stocks' && renderStocksView()}
+      </div>
     </div>
   );
-};
-
-const thStyle = {
-  border: '1px solid #ddd',
-  padding: '12px',
-  backgroundColor: '#f5f5f5',
-  textAlign: 'left'
-};
-
-const tdStyle = {
-  border: '1px solid #ddd',
-  padding: '12px',
-  textAlign: 'left'
 };
 
 export default Portfolio;
