@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { motion } from "framer-motion";
 import API from "../api/axios";
 import { useNavigate } from "react-router-dom";
 
@@ -7,8 +6,7 @@ const particles = Array.from({ length: 40 }, (_, i) => ({
   id: i,
   x: Math.random() * 100,
   y: Math.random() * 100,
-  size: Math.random() * 4 + 1,
-  speed: Math.random() * 0.5 + 0.1
+  size: Math.random() * 4 + 1
 }));
 
 function Register() {
@@ -21,10 +19,10 @@ function Register() {
     setIsLoading(true);
     try {
       await API.post("/auth/register/", { username, password });
-      alert("Account Created ✅");
+      alert("Account Created");
       navigate("/");
     } catch (err) {
-      const errorMsg = err.response?.data?.username?.[0] || err.response?.data?.detail || "Registration Error ❌";
+      const errorMsg = err.response?.data?.username?.[0] || err.response?.data?.detail || "Registration Error";
       alert(errorMsg);
     } finally {
       setIsLoading(false);
@@ -33,71 +31,49 @@ function Register() {
 
   return (
     <div className="min-h-screen bg-slate-50 overflow-hidden relative">
-      {/* Soft Pastel Background Blurs */}
       <div className="absolute top-0 -right-1/4 w-3/4 h-3/4 bg-violet-300/30 rounded-full blur-[120px] pointer-events-none mix-blend-multiply" />
       <div className="absolute bottom-0 -left-1/4 w-3/4 h-3/4 bg-sky-300/30 rounded-full blur-[120px] pointer-events-none mix-blend-multiply" />
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-1/2 h-1/2 bg-indigo-300/20 rounded-full blur-[100px] pointer-events-none mix-blend-multiply" />
 
-      {/* Animated Subtle Floating Orbs */}
-      {particles.map(particle => (
-        <motion.div
+      {particles.map((particle) => (
+        <div
           key={particle.id}
           className="absolute bg-white/60 rounded-full shadow-[0_0_15px_rgba(255,255,255,0.8)]"
           style={{
             left: `${particle.x}vw`,
             top: `${particle.y}vh`,
             width: particle.size * 1.5,
-            height: particle.size * 1.5
-          }}
-          animate={{
-            y: [0, -120],
-            x: [0, Math.sin(particle.id) * 30],
-            opacity: [0.3, 1, 0.3],
-            scale: [0.8, 1.2, 0.8]
-          }}
-          transition={{
-            duration: 15 + particle.speed * 10,
-            repeat: Infinity,
-            ease: "easeInOut"
+            height: particle.size * 1.5,
+            opacity: 0.6
           }}
         />
       ))}
 
       <div className="flex items-center justify-center min-h-screen px-4 py-12">
-        <motion.div
-          initial={{ opacity: 0, y: 40, scale: 0.97 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          transition={{ duration: 0.7, ease: "easeOut" }}
-          className="bg-white/70 backdrop-blur-3xl border border-white p-12 rounded-[2.5rem] shadow-[0_20px_60px_-15px_rgba(0,0,0,0.05)] w-full max-w-md text-slate-800 relative z-10"
-        >
-          <motion.div
-            initial={{ scale: 0.9, rotate: -5 }}
-            animate={{ scale: 1, rotate: 0 }}
-            transition={{ type: "spring", bounce: 0.5, delay: 0.1 }}
-            className="text-center mb-10"
-          >
-            <div className="text-5xl mb-6 mx-auto w-24 h-24 bg-gradient-to-br from-white to-violet-50 rounded-[2rem] flex items-center justify-center shadow-lg border border-white/80 shrink-0">
-              <span className="drop-shadow-md">🧬</span>
+        <div className="bg-white/70 backdrop-blur-3xl border border-white p-12 rounded-[2.5rem] shadow-[0_20px_60px_-15px_rgba(0,0,0,0.05)] w-full max-w-md text-slate-800 relative z-10">
+          <div className="text-center mb-10">
+            <div className="text-2xl mb-6 mx-auto w-24 h-24 bg-gradient-to-br from-white to-violet-50 rounded-[2rem] flex items-center justify-center shadow-lg border border-white/80 shrink-0 font-black">
+              ID
             </div>
             <h1 className="text-3xl font-black bg-gradient-to-r from-indigo-600 to-violet-500 bg-clip-text text-transparent mb-2 tracking-tight">
               AlphaMind
             </h1>
             <p className="text-slate-500/80 text-sm font-medium">The Future of AI Powerd Trading</p>
-          </motion.div>
+          </div>
 
           <div className="space-y-6">
-            <motion.div whileFocus={{ scale: 1.01 }} className="relative group">
-              <span className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 text-lg pointer-events-none transition-colors group-focus-within:text-violet-500">👤</span>
+            <div className="relative group">
+              <span className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 text-lg pointer-events-none transition-colors group-focus-within:text-violet-500">U</span>
               <input
                 className="w-full pl-14 pr-5 py-4 bg-white/80 border-2 border-slate-100 rounded-2xl backdrop-blur-md text-slate-800 placeholder-slate-400 focus:outline-none focus:border-violet-400 focus:ring-4 ring-violet-500/10 shadow-sm transition-all duration-300"
                 placeholder="Network Alias (Username)"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
               />
-            </motion.div>
+            </div>
 
-            <motion.div whileFocus={{ scale: 1.01 }} className="relative group">
-              <span className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 text-lg pointer-events-none transition-colors group-focus-within:text-violet-500">🔑</span>
+            <div className="relative group">
+              <span className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 text-lg pointer-events-none transition-colors group-focus-within:text-violet-500">PW</span>
               <input
                 type="password"
                 className="w-full pl-14 pr-5 py-4 bg-white/80 border-2 border-slate-100 rounded-2xl backdrop-blur-md text-slate-800 placeholder-slate-400 focus:outline-none focus:border-violet-400 focus:ring-4 ring-violet-500/10 shadow-sm transition-all duration-300"
@@ -105,14 +81,13 @@ function Register() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
               />
-            </motion.div>
+            </div>
 
-            <motion.button
-              whileHover={{ scale: 1.02, y: -2 }}
-              whileTap={{ scale: 0.98 }}
+            <button
               onClick={handleRegister}
               disabled={isLoading || !username || !password}
               className="w-full bg-gradient-to-r from-violet-500 to-fuchsia-600 hover:from-violet-600 hover:to-fuchsia-700 text-white font-bold py-4 px-6 rounded-2xl shadow-lg shadow-violet-500/30 transition-all duration-300 disabled:opacity-50 mt-4 border border-violet-400/50"
+              type="button"
             >
               <span className="flex items-center justify-center tracking-wide">
                 {isLoading ? (
@@ -127,15 +102,10 @@ function Register() {
                   "Enroll Node"
                 )}
               </span>
-            </motion.button>
+            </button>
           </div>
 
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.4 }}
-            className="flex flex-col items-center justify-center pt-8"
-          >
+          <div className="flex flex-col items-center justify-center pt-8">
             <div className="w-full flex items-center mb-6">
               <div className="h-px bg-gradient-to-r from-transparent via-slate-200 to-transparent flex-1" />
               <span className="text-slate-400/70 text-xs px-4 font-medium uppercase tracking-widest">ALREADY CONFIGURED?</span>
@@ -146,10 +116,10 @@ function Register() {
               className="text-sm font-semibold text-violet-600 hover:text-violet-800 cursor-pointer transition-colors"
               onClick={() => navigate("/")}
             >
-              Init Session Sequence →
+              Init Session Sequence ->
             </p>
-          </motion.div>
-        </motion.div>
+          </div>
+        </div>
       </div>
     </div>
   );

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from '../api/axios';
 import './Dashboard.css';
@@ -17,6 +17,36 @@ const Dashboard = () => {
 
   const navigate = useNavigate();
 
+  const fetchStocks = useCallback(async () => {
+    try {
+      const response = await axios.get('/stocks/');
+      setStocks(response.data);
+    } catch (error) {
+      console.error('Error fetching stocks:', error);
+      setError('Failed to fetch stocks');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const fetchModels = useCallback(async () => {
+    try {
+      const response = await axios.get('/models/');
+      setModels(response.data);
+    } catch (error) {
+      console.error('Error fetching models:', error);
+    }
+  }, []);
+
+  const fetchPortfolio = useCallback(async () => {
+    try {
+      const response = await axios.get('/portfolio/');
+      setPortfolio(response.data);
+    } catch (error) {
+      console.error('Error fetching portfolio:', error);
+    }
+  }, []);
+
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (!token) {
@@ -27,37 +57,7 @@ const Dashboard = () => {
     fetchStocks();
     fetchModels();
     fetchPortfolio();
-  }, [navigate]);
-
-  const fetchStocks = async () => {
-    try {
-      const response = await axios.get('/stocks/');
-      setStocks(response.data);
-    } catch (error) {
-      console.error('Error fetching stocks:', error);
-      setError('Failed to fetch stocks');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchModels = async () => {
-    try {
-      const response = await axios.get('/models/');
-      setModels(response.data);
-    } catch (error) {
-      console.error('Error fetching models:', error);
-    }
-  };
-
-  const fetchPortfolio = async () => {
-    try {
-      const response = await axios.get('/portfolio/');
-      setPortfolio(response.data);
-    } catch (error) {
-      console.error('Error fetching portfolio:', error);
-    }
-  };
+  }, [navigate, fetchStocks, fetchModels, fetchPortfolio]);
 
   const handleRunModel = async (model) => {
     if (!selectedStock) {

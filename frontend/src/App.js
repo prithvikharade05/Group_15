@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, useLocation } from "react-router-dom";
+import React, { useState, useEffect, useCallback } from 'react';
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import axios from './api/axios';
 import './App.css';
 import Navbar from './components/Navbar';
@@ -11,32 +11,7 @@ import Dashboard from "./pages/Dashboard";
 import StockDetail from "./pages/StockDetail";
 import Landing from "./pages/Landing";
 import Portfolio from "./pages/Portfolio";
-import SentimentAnalysis from "./pages/SentimentAnalysis";
-
-function AppContent({ isLoggedIn, handleLogin, handleLogout, marketData, loading }) {
-  const location = useLocation();
-  const isSentimentAnalysis = location.pathname === '/sentiment-analysis';
-
-  return (
-    <div className="App">
-      {!isSentimentAnalysis && <Navbar isLoggedIn={isLoggedIn} onLogout={handleLogout} />}
-      {!isSentimentAnalysis && <MarketStrip data={marketData} loading={loading} />}
-      <Routes>
-        <Route path="/" element={<Landing />} />
-        <Route path="/dashboard" element={
-          isLoggedIn ? <Dashboard /> : <Login onLogin={handleLogin} />
-        } />
-        <Route path="/stock/:symbol" element={<StockDetail />} />
-        <Route path="/portfolio" element={<Portfolio />} />
-        <Route path="/portfolio/:sector" element={<Portfolio />} />
-        <Route path="/login" element={<Login onLogin={handleLogin} />} />
-        <Route path="/register" element={<Register onLogin={handleLogin} />} />
-        <Route path="/mpin" element={<MPIN />} />
-        <Route path="/sentiment-analysis" element={<SentimentAnalysis />} />
-      </Routes>
-    </div>
-  );
-}
+import SectorSentiment from "./pages/SectorSentiment";
 
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -44,16 +19,7 @@ function App() {
   const [marketData, setMarketData] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      setIsLoggedIn(true);
-      fetchUserProfile();
-    }
-    fetchMarketData();
-  }, []);
-
-  const fetchUserProfile = async () => {
+  const fetchUserProfile = useCallback(async () => {
     try {
       const response = await axios.get('/auth/profile/');
       setUser(response.data);
@@ -63,9 +29,9 @@ function App() {
       setIsLoggedIn(false);
       localStorage.removeItem('token');
     }
-  };
+  }, []);
 
-  const fetchMarketData = async () => {
+  const fetchMarketData = useCallback(async () => {
     try {
       const response = await axios.get('/market/');
       setMarketData(response.data);
@@ -74,7 +40,18 @@ function App() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      setIsLoggedIn(true);
+      fetchUserProfile();
+    } else {
+      setIsLoggedIn(false);
+    }
+    fetchMarketData();
+  }, [fetchUserProfile, fetchMarketData]);
 
   const handleLogin = (userData) => {
     setIsLoggedIn(true);
@@ -89,14 +66,34 @@ function App() {
 
   return (
     <Router>
-      <AppContent 
-        isLoggedIn={isLoggedIn} 
-        handleLogin={handleLogin} 
-        handleLogout={handleLogout} 
-        marketData={marketData} 
-        loading={loading} 
-      />
-    </Router>
+<<<<<<< HEAD
+  <AppContent
+    isLoggedIn={isLoggedIn}
+    handleLogin={handleLogin}
+    handleLogout={handleLogout}
+    marketData={marketData}
+    loading={loading}
+  />
+=======
+      <div className="App">
+        <Navbar isLoggedIn={isLoggedIn} onLogout={handleLogout} />
+        <MarketStrip data={marketData} loading={loading} />
+        <Routes>
+          <Route path="/" element={<Landing />} />
+          <Route path="/dashboard" element={
+            isLoggedIn ? <Dashboard /> : <Login onLogin={handleLogin} />
+          } />
+          <Route path="/stock/:symbol" element={<StockDetail />} />
+          <Route path="/portfolio" element={<Portfolio />} />
+          <Route path="/portfolio/:sector" element={<Portfolio />} />
+          <Route path="/sector-sentiment/:sector" element={<SectorSentiment />} />
+          <Route path="/login" element={<Login onLogin={handleLogin} />} />
+          <Route path="/register" element={<Register onLogin={handleLogin} />} />
+          <Route path="/mpin" element={<MPIN />} />
+        </Routes>
+      </div>
+>>>>>>> 0a952dcbdfac8742914bb6d6e29df54c9737d6f2
+    </Router >
   );
 }
 
