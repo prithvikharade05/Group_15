@@ -66,15 +66,6 @@ function App() {
 
   return (
     <Router>
-<<<<<<< HEAD
-  <AppContent
-    isLoggedIn={isLoggedIn}
-    handleLogin={handleLogin}
-    handleLogout={handleLogout}
-    marketData={marketData}
-    loading={loading}
-  />
-=======
       <div className="App">
         <Navbar isLoggedIn={isLoggedIn} onLogout={handleLogout} />
         <MarketStrip data={marketData} loading={loading} />
@@ -83,6 +74,7 @@ function App() {
           <Route path="/dashboard" element={
             isLoggedIn ? <Dashboard /> : <Login onLogin={handleLogin} />
           } />
+          <Route path="/stock" element={<StockDetail />} />
           <Route path="/stock/:symbol" element={<StockDetail />} />
           <Route path="/portfolio" element={<Portfolio />} />
           <Route path="/portfolio/:sector" element={<Portfolio />} />
@@ -92,7 +84,6 @@ function App() {
           <Route path="/mpin" element={<MPIN />} />
         </Routes>
       </div>
->>>>>>> 0a952dcbdfac8742914bb6d6e29df54c9737d6f2
     </Router >
   );
 }
