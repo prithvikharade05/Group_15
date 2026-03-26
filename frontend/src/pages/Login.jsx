@@ -121,7 +121,7 @@ function Login({ onLogin }) {
               className="text-sm font-semibold text-indigo-600 hover:text-indigo-800 cursor-pointer transition-colors"
               onClick={() => navigate("/register")}
             >
-              Configure Network Identity ->
+              Configure Network Identity &rarr;
             </p>
           </div>
         </div>

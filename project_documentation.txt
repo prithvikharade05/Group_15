@@ -1,0 +1,89 @@
+ALPHAMIND AI TRADING PLATFORM - PROJECT DOCUMENTATION
+
+1. PROJECT OVERVIEW
+-------------------
+ALPHAMIND is a premium, futuristic AI-powered trading platform designed for financial analysis, stock prediction, and portfolio management. It uses machine learning models (ARIMA, LSTM, Linear Regression) and real-time market data to provide actionable insights.
+
+2. TECH STACK
+-------------
+BACKEND:
+- Framework: Django 5.2.12
+- API: Django REST Framework (DRF)
+- Authentication: SimpleJWT
+- Database: PostgreSQL (alphamind_db)
+- AI/ML Engines: TensorFlow, PyTorch, Scikit-learn, Statsmodels
+- Market Data: yfinance (Yahoo Finance API)
+
+FRONTEND:
+- Framework: React
+- Styling: Tailwind CSS, Glassmorphism UI
+- Communication: Axios (Centralized API Service Layer)
+
+3. PROJECT STRUCTURE
+--------------------
+/accounts          - User authentication, registration, and profile management.
+/chatbot           - AI financial advisor chatbot engine.
+/core              - Root Django configuration (settings, main URLs).
+/data              - Optional data storage or static datasets.
+/frontend          - React application source code.
+/markets           - Specific market data processing logic.
+/portfolio         - Portfolio tracking, sector analysis, and stock listing.
+/prediction        - Core AI models (ARIMA, LSTM, Regression, Clustering).
+/sentiment         - News scraping and sentiment analysis engine.
+/venv              - Python virtual environment.
+manage.py          - Django administrative script.
+requirements.txt   - Python dependencies.
+
+4. API ENDPOINTS & DETAILS
+--------------------------
+
+AUTHENTICATION (/api/auth/)
+- POST /register/      : Register a new user.
+- POST /login/         : Login and receive JWT access/refresh tokens.
+- POST /set-mpin/      : Set a 4-7 digit MPIN for secure access (Authenticated).
+- POST /verify-mpin/   : Verify user MPIN (Authenticated).
+- GET  /profile/       : Get current user profile details (Authenticated).
+
+PORTFOLIO & SECTORS (/api/portfolio/)
+- GET  /               : List all portfolios.
+- GET  /portfolios/    : Get available portfolio names (e.g., NIFTY200).
+- GET  /sectors/       : Get unique sectors for a given portfolio (?portfolio=).
+- GET  /stocks/        : Get list of stocks for a sector/portfolio (?portfolio=&sector=).
+- GET  /sector-data/   : Fetch live market data for a specific sector.
+- GET  /cluster-data/  : Perform K-Means clustering on sector stocks for performance labeling.
+
+AI PREDICTIONS (/api/)
+- POST /arima/         : Generate 7-day forecast using ARIMA model (?symbol=&days=).
+- POST /lstm/          : Generate 5-day forecast using CNN-LSTM model (?symbol=&days=).
+- POST /regression/    : Generate 5-day forecast using Linear Regression (?symbol=&days=).
+- POST /cluster/       : Run clustering analysis on a list of stocks.
+- GET  /market/        : Get real-time ticker data for top symbols.
+- GET  /quote/         : Get detailed quote for a specific symbol.
+- GET  /stocks/        : Get curated list of top stocks with prices.
+- GET  /stocks/<sym>/  : Get detailed real-time info for a specific stock.
+- GET  /predictions/<sym>/ : Get simplified SMA predictions for a stock.
+- POST /predictions/   : Run a specific prediction model on a symbol.
+- GET  /models/        : List available AI models and their status.
+- POST /models/run/    : Run a specific model (ARIMA/LSTM/Regression) on a symbol.
+
+SENTIMENT ANALYSIS (/api/sentiment/)
+- GET  /sector/<name>/ : Fetch news and perform sentiment analysis (Bullish/Bearish) for a sector.
+
+CHATBOT (/api/chatbot/ & /api/chat/)
+- POST /ask/           : Send a message to the AI Financial Advisor.
+
+5. AUTHENTICATION FLOW
+----------------------
+1. User registers/logs in via /api/auth/login.
+2. User receives JWT token.
+3. User must set an MPIN if not already set.
+4. Subsequent sensitive actions require valid JWT and potentially MPIN verification in the frontend flow.
+
+6. AI MODELS DETAILS
+--------------------
+- ARIMA: Best for short-term univariate time-series forecasting.
+- LSTM: Deep learning approach for capturing complex patterns in stock history.
+- Linear Regression: Simple trend analysis for price movement.
+- K-Means Clustering: Groups stocks into "Strong", "Neutral", and "Weak" based on change and volume.
+
+--- End of Documentation ---
