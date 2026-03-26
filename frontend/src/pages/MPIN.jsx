@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import API from "../api/axios";
 import { useNavigate, Link } from "react-router-dom";
 
-function MPIN() {
+function MPIN({ onMpinSuccess }) {
   const [mpin, setMpin] = useState(["", "", "", ""]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
@@ -42,15 +42,17 @@ function MPIN() {
     setStatus("Verifying PIN...");
     try {
       await API.post("/auth/set-mpin/", { mpin: mpin.join("") });
+      // Mark MPIN as verified in app state + localStorage
+      if (onMpinSuccess) onMpinSuccess();
       setStatus("Access granted! Redirecting...");
-      setTimeout(() => navigate("/dashboard"), 1500);
+      setTimeout(() => navigate("/stock"), 1500);
     } catch {
       setError("Incorrect PIN. Please try again.");
       setMpin(["", "", "", ""]);
       setStatus("");
       setIsLoading(false);
     }
-  }, [mpin, navigate]);
+  }, [mpin, navigate, onMpinSuccess]);
 
   useEffect(() => {
     if (mpin[3] && !isLoading) {

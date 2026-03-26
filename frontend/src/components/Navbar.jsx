@@ -1,13 +1,27 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 
-const Navbar = ({ isLoggedIn, onLogout }) => {
+const Navbar = ({ isLoggedIn, isAuthenticated, onLogout }) => {
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
   const [menuOpen, setMenuOpen] = useState(false);
 
+  // Guard: redirect to /login if not fully authenticated (login + MPIN)
+  const handleProtectedClick = (path) => {
+    if (!isAuthenticated) {
+      navigate('/login');
+    } else {
+      navigate(path);
+    }
+    setMenuOpen(false);
+  };
+
   const handleSearch = (e) => {
     e.preventDefault();
+    if (!isAuthenticated) {
+      navigate('/login');
+      return;
+    }
     if (search.trim()) {
       navigate(`/stock/${search.trim().toUpperCase()}`);
       setSearch('');
@@ -16,8 +30,10 @@ const Navbar = ({ isLoggedIn, onLogout }) => {
 
   const handleLogout = () => {
     localStorage.removeItem('token');
+    localStorage.removeItem('mpinVerified');
     if (onLogout) onLogout();
-    navigate('/login');
+    navigate('/');
+    setMenuOpen(false);
   };
 
   return (
@@ -49,34 +65,57 @@ const Navbar = ({ isLoggedIn, onLogout }) => {
             </div>
             <input
               type="text"
-              className="block w-full pl-11 pr-4 py-2.5 border-2 border-slate-200 rounded-xl bg-slate-50 placeholder-slate-400 focus:outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-100 transition-all duration-300 text-sm font-medium text-slate-700"
-              placeholder="Search stocks, indices..."
+              className={`block w-full pl-11 pr-4 py-2.5 border-2 rounded-xl bg-slate-50 placeholder-slate-400 focus:outline-none transition-all duration-300 text-sm font-medium text-slate-700 ${
+                isAuthenticated
+                  ? 'border-slate-200 focus:border-purple-400 focus:ring-2 focus:ring-purple-100'
+                  : 'border-slate-100 cursor-pointer opacity-60'
+              }`}
+              placeholder={isAuthenticated ? "Search stocks, indices..." : "Login to search stocks..."}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
+              onClick={() => { if (!isAuthenticated) navigate('/login'); }}
+              readOnly={!isAuthenticated}
             />
           </form>
         </div>
 
         {/* Right: Navigation Links + Auth */}
         <nav className="hidden md:flex items-center gap-6">
-          <Link
-            to="/"
-            className="text-slate-600 hover:text-purple-600 text-sm font-semibold transition-all duration-200 hover:scale-105 transform tracking-wide"
+          <button
+            onClick={() => handleProtectedClick('/dashboard')}
+            className={`text-sm font-semibold transition-all duration-200 tracking-wide ${
+              isAuthenticated
+                ? 'text-slate-600 hover:text-purple-600 hover:scale-105 transform cursor-pointer'
+                : 'text-slate-400 cursor-pointer hover:text-purple-400'
+            }`}
+            title={!isAuthenticated ? 'Login to access Dashboard' : ''}
           >
             Dashboard
-          </Link>
-          <Link
-            to="/stock"
-            className="text-slate-600 hover:text-purple-600 text-sm font-semibold transition-all duration-200 hover:scale-105 transform tracking-wide"
+          </button>
+
+          <button
+            onClick={() => handleProtectedClick('/stock')}
+            className={`text-sm font-semibold transition-all duration-200 tracking-wide ${
+              isAuthenticated
+                ? 'text-slate-600 hover:text-purple-600 hover:scale-105 transform cursor-pointer'
+                : 'text-slate-400 cursor-pointer hover:text-purple-400'
+            }`}
+            title={!isAuthenticated ? 'Login to access Models' : ''}
           >
             Models
-          </Link>
-          <Link
-            to="/portfolio"
-            className="text-slate-600 hover:text-purple-600 text-sm font-semibold transition-all duration-200 hover:scale-105 transform tracking-wide"
+          </button>
+
+          <button
+            onClick={() => handleProtectedClick('/portfolio')}
+            className={`text-sm font-semibold transition-all duration-200 tracking-wide ${
+              isAuthenticated
+                ? 'text-slate-600 hover:text-purple-600 hover:scale-105 transform cursor-pointer'
+                : 'text-slate-400 cursor-pointer hover:text-purple-400'
+            }`}
+            title={!isAuthenticated ? 'Login to access Portfolio' : ''}
           >
             Portfolio
-          </Link>
+          </button>
 
           <div className="w-px h-6 bg-slate-200 mx-1" />
 
@@ -126,19 +165,20 @@ const Navbar = ({ isLoggedIn, onLogout }) => {
       {/* Mobile dropdown */}
       {menuOpen && (
         <div className="md:hidden border-t border-slate-100 bg-white px-4 pb-4 pt-2 flex flex-col gap-3">
-          {/* Mobile search */}
           <form onSubmit={handleSearch} className="relative">
             <input
               type="text"
               className="block w-full pl-4 pr-4 py-2.5 border-2 border-slate-200 rounded-xl bg-slate-50 placeholder-slate-400 focus:outline-none focus:border-purple-400 transition-all duration-300 text-sm"
-              placeholder="Search stocks..."
+              placeholder={isAuthenticated ? "Search stocks..." : "Login to search..."}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
+              onClick={() => { if (!isAuthenticated) { navigate('/login'); setMenuOpen(false); } }}
+              readOnly={!isAuthenticated}
             />
           </form>
-          <Link to="/" className="text-slate-600 hover:text-purple-600 text-sm font-semibold py-1" onClick={() => setMenuOpen(false)}>Dashboard</Link>
-          <Link to="/dashboard" className="text-slate-600 hover:text-purple-600 text-sm font-semibold py-1" onClick={() => setMenuOpen(false)}>Models</Link>
-          <Link to="/portfolio" className="text-slate-600 hover:text-purple-600 text-sm font-semibold py-1" onClick={() => setMenuOpen(false)}>Portfolio</Link>
+          <button onClick={() => handleProtectedClick('/dashboard')} className="text-left text-slate-600 hover:text-purple-600 text-sm font-semibold py-1">Dashboard</button>
+          <button onClick={() => handleProtectedClick('/stock')} className="text-left text-slate-600 hover:text-purple-600 text-sm font-semibold py-1">Models</button>
+          <button onClick={() => handleProtectedClick('/portfolio')} className="text-left text-slate-600 hover:text-purple-600 text-sm font-semibold py-1">Portfolio</button>
           {isLoggedIn ? (
             <button
               onClick={handleLogout}
