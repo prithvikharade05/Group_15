@@ -17,14 +17,31 @@ jobs:
           username: azureuser
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
+            echo "🚀 Starting Deployment..."
+
             cd ~/Group_15
+
+            echo "📥 Pulling latest code..."
             git pull origin bhairavi-frontend
 
+            echo "🐍 Activating Python venv..."
+            source venv/bin/activate
+
+            echo "📦 Installing backend dependencies..."
+            pip install --upgrade pip
+            pip install -r requirements.txt
+
+            echo "⚛️ Building frontend..."
             cd frontend
+            rm -rf node_modules build
             npm install
             npm run build
 
+            echo "📁 Copying build to server..."
             sudo rm -rf /var/www/html/*
             sudo cp -r build/* /var/www/html/
 
+            echo "🔄 Restarting backend..."
             pm2 restart backend
+
+            echo "✅ Deployment completed successfully!"
