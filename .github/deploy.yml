@@ -1,0 +1,30 @@
+name: Deploy to Azure VM
+
+on:
+  push:
+    branches:
+      - prithvi-backend
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy to VM
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: 20.196.218.114
+          username: azureuser
+          key: ${{ secrets.SSH_KEY }}
+          script: |
+            cd ~/Group_15
+            git pull origin prithvi-backend
+            source venv/bin/activate
+            pip install -r requirements.txt
+            pm2 restart backend || true
+            cd frontend
+            npm install
+            npm run build
+            sudo rm -rf /var/www/alphamind/*
+            sudo cp -r build/* /var/www/alphamind/
+            sudo systemctl restart nginx
