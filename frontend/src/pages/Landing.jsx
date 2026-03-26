@@ -1,210 +1,223 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import './Landing.css';
 
 const Landing = () => {
+    const observerRef = useRef(null);
+
+    useEffect(() => {
+        // Intersection Observer for scroll-triggered fade-in animations
+        observerRef.current = new IntersectionObserver(
+            (entries) => {
+                entries.forEach((entry) => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('visible');
+                    }
+                });
+            },
+            { threshold: 0.1 }
+        );
+
+        const elements = document.querySelectorAll('.reveal');
+        elements.forEach((el) => observerRef.current.observe(el));
+
+        return () => {
+            if (observerRef.current) observerRef.current.disconnect();
+        };
+    }, []);
+
+    const scrollToNext = () => {
+        const el = document.getElementById('value-section');
+        if (el) el.scrollIntoView({ behavior: 'smooth' });
+    };
+
     return (
-        <div className="landing">
-            {/* HERO SECTION */}
-            <section className="hero">
-                <div className="hero-content">
-                    <div className="hero-text">
-                        <h1 className="hero-title">AlphaMind</h1>
-                        <h2 className="hero-subtitle">The Future of AI Powered Trading</h2>
-                        <p className="hero-description">
+        <div className="landing-v2">
+
+            {/* ═══════════════════════════════════════════════ */}
+            {/* STEP 1 — FULLSCREEN VIDEO HERO                  */}
+            {/* ═══════════════════════════════════════════════ */}
+            <section className="hero-v2">
+                <video
+                    autoPlay
+                    loop
+                    muted
+                    playsInline
+                    className="video-bg"
+                    aria-hidden="true"
+                >
+                    <source src="/media/trading-loop.mp4" type="video/mp4" />
+                </video>
+
+                {/* Very-light overlay — just enough for text legibility */}
+                <div className="hero-overlay" />
+
+                <div className="hero-center">
+                    <div className="hero-content-float">
+                        <h1 className="hero-title-v2">AlphaMind</h1>
+                        <h2 className="hero-subtitle-v2">The Future of AI Powered Trading</h2>
+                        <p className="hero-desc-v2">
                             Multi-model intelligence platform delivering real-time stock predictions,
                             AI insights, and institutional-grade analytics.
                         </p>
-                        <div className="hero-cta">
-                            <Link to="/dashboard" className="btn-primary">Launch Dashboard</Link>
-                            <Link to="/dashboard" className="btn-secondary">Explore Models</Link>
+                        <div className="hero-cta-v2">
+                            <Link to="/dashboard" className="btn-glow-primary">
+                                Launch Dashboard
+                            </Link>
+                            <Link to="/dashboard" className="btn-glow-secondary">
+                                Explore Models
+                            </Link>
                         </div>
                     </div>
-                    <div className="hero-visual">
-                        <div className="ai-illustration">
-                            <div className="ai-circle">
-                                <div className="ai-dot"></div>
-                                <div className="ai-dot"></div>
-                                <div className="ai-dot"></div>
+                </div>
+
+                {/* STEP 2 — Scroll Indicator */}
+                <button className="scroll-indicator" onClick={scrollToNext} aria-label="Scroll down">
+                    <span className="scroll-arrow">↓</span>
+                    <span className="scroll-label">Scroll</span>
+                </button>
+            </section>
+
+            {/* ═══════════════════════════════════════════════ */}
+            {/* STEP 3 — VALUE PROPOSITION  (3D cards)         */}
+            {/* ═══════════════════════════════════════════════ */}
+            <section className="value-v2" id="value-section">
+                <div className="container-v2">
+                    <h2 className="section-title-v2 reveal">What We Deliver</h2>
+                    <div className="features-grid-v2">
+
+                        {[
+                            { icon: '📊', title: 'Real-time Stock Intelligence', desc: 'Live market data with AI-powered insights and trend analysis.' },
+                            { icon: '🤖', title: 'Multi-model Predictions',      desc: 'ARIMA, LSTM, and Regression models working together for accuracy.' },
+                            { icon: '🧠', title: 'AI-driven Insights',           desc: 'Advanced algorithms providing actionable trading recommendations.' },
+                            { icon: '⚡', title: 'Automated Data Pipelines',     desc: 'Seamless integration with real-time data sources and processing.' },
+                        ].map((f, i) => (
+                            <div className="feature-card-v2 reveal" key={i} style={{ animationDelay: `${i * 0.1}s` }}>
+                                <div className="feature-icon-v2">{f.icon}</div>
+                                <h3>{f.title}</h3>
+                                <p>{f.desc}</p>
+                                <div className="card-glow" />
                             </div>
-                            <div className="ai-wave"></div>
-                        </div>
+                        ))}
+
                     </div>
                 </div>
             </section>
 
-            {/* VALUE PROPOSITION */}
-            <section className="value-prop">
-                <div className="container">
-                    <h2 className="section-title">What We Deliver</h2>
-                    <div className="features-grid">
-                        <div className="feature-card">
-                            <div className="feature-icon">📊</div>
-                            <h3>Real-time Stock Intelligence</h3>
-                            <p>Live market data with AI-powered insights and trend analysis.</p>
-                        </div>
-                        <div className="feature-card">
-                            <div className="feature-icon">🤖</div>
-                            <h3>Multi-model Predictions</h3>
-                            <p>ARIMA, LSTM, and Regression models working together for accuracy.</p>
-                        </div>
-                        <div className="feature-card">
-                            <div className="feature-icon">🧠</div>
-                            <h3>AI-driven Insights</h3>
-                            <p>Advanced algorithms providing actionable trading recommendations.</p>
-                        </div>
-                        <div className="feature-card">
-                            <div className="feature-icon">⚡</div>
-                            <h3>Automated Data Pipelines</h3>
-                            <p>Seamless integration with real-time data sources and processing.</p>
-                        </div>
+            {/* ═══════════════════════════════════════════════ */}
+            {/* STEP 4 — HOW IT WORKS (Horizontal Timeline)    */}
+            {/* ═══════════════════════════════════════════════ */}
+            <section className="how-v2">
+                <div className="container-v2">
+                    <h2 className="section-title-v2 reveal">How It Works</h2>
+                    <div className="timeline-wrapper">
+                        <div className="timeline-track" />
+                        {[
+                            { n: '1', title: 'Select Stock',        desc: 'Choose from thousands of available stocks and assets.' },
+                            { n: '2', title: 'Fetch Live Data',      desc: 'Real-time data retrieval from integrated market sources.' },
+                            { n: '3', title: 'Store & Process',      desc: 'Advanced data processing and preparation for analysis.' },
+                            { n: '4', title: 'Run ML Model',         desc: 'Multiple AI models analyze patterns and generate predictions.' },
+                            { n: '5', title: 'Generate Prediction',  desc: 'Comprehensive analysis with charts and actionable insights.' },
+                        ].map((s, i) => (
+                            <div className="timeline-step reveal" key={i}>
+                                <div className="step-circle">{s.n}</div>
+                                <div className="step-body">
+                                    <h3>{s.title}</h3>
+                                    <p>{s.desc}</p>
+                                </div>
+                            </div>
+                        ))}
                     </div>
                 </div>
             </section>
 
-            {/* HOW IT WORKS */}
-            <section className="how-it-works">
-                <div className="container">
-                    <h2 className="section-title">How It Works</h2>
-                    <div className="process-flow">
-                        <div className="process-step">
-                            <div className="step-number">1</div>
-                            <div className="step-content">
-                                <h3>Select Stock</h3>
-                                <p>Choose from thousands of available stocks and assets.</p>
+            {/* ═══════════════════════════════════════════════ */}
+            {/* STEP 5 — AI CAPABILITIES GRID                  */}
+            {/* ═══════════════════════════════════════════════ */}
+            <section className="capabilities-v2">
+                <div className="container-v2">
+                    <h2 className="section-title-v2 reveal">Our AI Capabilities</h2>
+                    <div className="capabilities-grid-v2">
+                        {[
+                            { title: 'ARIMA Forecasting',    desc: 'Time series analysis for trend prediction and seasonal patterns.',        icon: '📈' },
+                            { title: 'LSTM + CNN Prediction', desc: 'Deep learning models for complex pattern recognition.',                   icon: '🔮' },
+                            { title: 'Regression Analysis',  desc: 'Statistical modeling for price movement prediction.',                     icon: '📉' },
+                            { title: 'Clustering Engine',    desc: 'Market segmentation and asset correlation analysis.',                      icon: '🔗' },
+                            { title: 'Portfolio Allocator',  desc: 'Optimal asset distribution based on risk and return analysis.',            icon: '💼' },
+                            { title: 'Sentiment Nexus',      desc: 'NLP-driven market sentiment analysis from news and social media.',         icon: '🧬' },
+                            { title: 'AI Advisor',           desc: 'Personalized trading recommendations and strategy guidance.',              icon: '🤖' },
+                        ].map((c, i) => (
+                            <div className="capability-card-v2 reveal" key={i}>
+                                <span className="cap-icon">{c.icon}</span>
+                                <h3>{c.title}</h3>
+                                <p>{c.desc}</p>
                             </div>
-                        </div>
-                        <div className="process-arrow">→</div>
-                        <div className="process-step">
-                            <div className="step-number">2</div>
-                            <div className="step-content">
-                                <h3>Fetch Live Data</h3>
-                                <p>Real-time data retrieval from integrated market sources.</p>
-                            </div>
-                        </div>
-                        <div className="process-arrow">→</div>
-                        <div className="process-step">
-                            <div className="step-number">3</div>
-                            <div className="step-content">
-                                <h3>Store & Process</h3>
-                                <p>Advanced data processing and preparation for analysis.</p>
-                            </div>
-                        </div>
-                        <div className="process-arrow">→</div>
-                        <div className="process-step">
-                            <div className="step-number">4</div>
-                            <div className="step-content">
-                                <h3>Run ML Model</h3>
-                                <p>Multiple AI models analyze patterns and generate predictions.</p>
-                            </div>
-                        </div>
-                        <div className="process-arrow">→</div>
-                        <div className="process-step">
-                            <div className="step-number">5</div>
-                            <div className="step-content">
-                                <h3>Generate Prediction</h3>
-                                <p>Comprehensive analysis with charts and actionable insights.</p>
-                            </div>
-                        </div>
+                        ))}
                     </div>
                 </div>
             </section>
 
-            {/* STATS SECTION */}
-            <section className="stats">
-                <div className="container">
-                    <div className="stats-grid">
-                        <div className="stat-item">
-                            <h3 className="stat-number">15+</h3>
-                            <p className="stat-label">AI Models</p>
-                        </div>
-                        <div className="stat-item">
-                            <h3 className="stat-number">10M+</h3>
-                            <p className="stat-label">Data Points</p>
-                        </div>
-                        <div className="stat-item">
-                            <h3 className="stat-number">95%</h3>
-                            <p className="stat-label">Accuracy Rate</p>
-                        </div>
-                        <div className="stat-item">
-                            <h3 className="stat-number">24/7</h3>
-                            <p className="stat-label">Active Tracking</p>
-                        </div>
+            {/* ═══════════════════════════════════════════════ */}
+            {/* STEP 6 — INTELLIGENCE ENGINES (NEW SECTION)    */}
+            {/* ═══════════════════════════════════════════════ */}
+            <section className="engines-v2">
+                <div className="container-v2">
+                    <h2 className="section-title-v2 reveal">⚡ Intelligence Engines Powering AlphaMind</h2>
+                    <div className="engines-grid">
+                        {[
+                            { icon: '🔗', title: 'Clustering Engine',        desc: 'Groups correlated assets using K-Means & DBSCAN to reveal hidden market structures and inter-sector relationships.' },
+                            { icon: '🧬', title: 'Sentiment Analysis Engine', desc: 'NLP pipeline parses financial news, earnings calls, and social signals to derive real-time market mood scores.' },
+                            { icon: '🔮', title: 'Prediction Models',         desc: 'Ensemble of ARIMA for classical series, LSTM for sequential deep learning, capturing short and long-term patterns.' },
+                            { icon: '💼', title: 'Portfolio Optimizer',        desc: 'Markowitz mean-variance framework calculates the efficient frontier for risk-adjusted optimal allocation.' },
+                        ].map((e, i) => (
+                            <div className="engine-card reveal" key={i}>
+                                <div className="engine-icon">{e.icon}</div>
+                                <h3>{e.title}</h3>
+                                <p>{e.desc}</p>
+                                <div className="engine-glow" />
+                            </div>
+                        ))}
                     </div>
                 </div>
             </section>
 
-            {/* AI CAPABILITIES */}
-            <section className="capabilities">
-                <div className="container">
-                    <h2 className="section-title">Our AI Capabilities</h2>
-                    <div className="capabilities-grid">
-                        <div className="capability-card">
-                            <h3>ARIMA Forecasting</h3>
-                            <p>Time series analysis for trend prediction and seasonal patterns.</p>
-                        </div>
-                        <div className="capability-card">
-                            <h3>LSTM + CNN Prediction</h3>
-                            <p>Deep learning models for complex pattern recognition.</p>
-                        </div>
-                        <div className="capability-card">
-                            <h3>Regression Analysis</h3>
-                            <p>Statistical modeling for price movement prediction.</p>
-                        </div>
-                        <div className="capability-card">
-                            <h3>Clustering Engine</h3>
-                            <p>Market segmentation and asset correlation analysis.</p>
-                        </div>
-                        <div className="capability-card">
-                            <h3>Portfolio Allocator</h3>
-                            <p>Optimal asset distribution based on risk and return analysis.</p>
-                        </div>
-                        <div className="capability-card">
-                            <h3>Sentiment Nexus</h3>
-                            <p>NLP-driven market sentiment analysis from news and social media.</p>
-                        </div>
-                        <div className="capability-card">
-                            <h3>AI Advisor</h3>
-                            <p>Personalized trading recommendations and strategy guidance.</p>
-                        </div>
+            {/* ═══════════════════════════════════════════════ */}
+            {/* STEP 7 — TRUST SECTION                         */}
+            {/* ═══════════════════════════════════════════════ */}
+            <section className="trust-v2">
+                <div className="container-v2">
+                    <h2 className="section-title-v2 reveal">Trusted by Professionals</h2>
+                    <div className="trust-grid">
+                        {[
+                            { icon: '⚡', title: 'Real-time Processing',    desc: 'Sub-second data processing and prediction generation.' },
+                            { icon: '🔗', title: 'Backend Integration',     desc: 'Seamless connection with institutional-grade data sources.' },
+                            { icon: '📈', title: 'Scalable Architecture',   desc: 'Enterprise-level infrastructure handling millions of requests.' },
+                        ].map((t, i) => (
+                            <div className="trust-card reveal" key={i}>
+                                <div className="trust-icon-v2">{t.icon}</div>
+                                <h3>{t.title}</h3>
+                                <p>{t.desc}</p>
+                            </div>
+                        ))}
                     </div>
                 </div>
             </section>
 
-            {/* TRUST SECTION */}
-            <section className="trust">
-                <div className="container">
-                    <h2 className="section-title">Trusted by Professionals</h2>
-                    <div className="trust-content">
-                        <div className="trust-item">
-                            <div className="trust-icon">⚡</div>
-                            <h3>Real-time Processing</h3>
-                            <p>Sub-second data processing and prediction generation.</p>
-                        </div>
-                        <div className="trust-item">
-                            <div className="trust-icon">🔗</div>
-                            <h3>Backend Integration</h3>
-                            <p>Seamless connection with institutional-grade data sources.</p>
-                        </div>
-                        <div className="trust-item">
-                            <div className="trust-icon">📈</div>
-                            <h3>Scalable Architecture</h3>
-                            <p>Enterprise-level infrastructure handling millions of requests.</p>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            {/* FINAL CTA */}
-            <section className="final-cta">
-                <div className="container">
-                    <h2 className="cta-title">Start Using AlphaMind Today</h2>
-                    <p className="cta-subtitle">
+            {/* ═══════════════════════════════════════════════ */}
+            {/* STEP 8 — FINAL CTA                             */}
+            {/* ═══════════════════════════════════════════════ */}
+            <section className="final-cta-v2">
+                <div className="cta-inner reveal">
+                    <h2 className="cta-title-v2">Start Using AlphaMind Today</h2>
+                    <p className="cta-subtitle-v2">
                         Join thousands of traders who have already discovered the power of AI-driven trading.
                     </p>
-                    <Link to="/dashboard" className="btn-primary btn-large">Get Started</Link>
+                    <Link to="/dashboard" className="btn-cta-pulse">
+                        Get Started →
+                    </Link>
                 </div>
             </section>
+
         </div>
     );
 };

@@ -1,15 +1,38 @@
+.portfolio-page {
+    min-height: 100vh;
+    padding: 40px 16px;
+    background: linear-gradient(135deg, #f8fafc 0%, #eef2ff 100%);
+}
+
 .portfolio-container {
-    padding: 2rem;
     max-width: 1200px;
     margin: 0 auto;
+    padding: 24px;
+    background: rgba(255, 255, 255, 0.9);
+    border: 1px solid #e2e8f0;
+    border-radius: 20px;
+    box-shadow: 0 16px 40px rgba(15, 23, 42, 0.12);
+    backdrop-filter: blur(8px);
     font-family: 'Inter', sans-serif;
 }
 
+.main-title {
+    margin-bottom: 16px;
+    font-size: 2.25rem;
+    font-weight: 800;
+    color: #0f172a;
+}
+
 .portfolio-title {
-    font-size: 2rem;
+    font-size: 1.75rem;
     font-weight: 700;
-    color: #1e293b;
-    margin-bottom: 2rem;
+    color: #0f172a;
+    margin: 0;
+}
+
+.portfolio-subtitle {
+    color: #64748b;
+    margin-top: 4px;
 }
 
 .portfolio-grid {
@@ -23,19 +46,19 @@
     border: 1px solid #e2e8f0;
     border-radius: 1rem;
     padding: 2rem;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    box-shadow: 0 6px 18px rgba(15, 23, 42, 0.08);
     transition: transform 0.3s ease, box-shadow 0.3s ease;
     cursor: pointer;
 }
 
 .portfolio-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    transform: translateY(-6px);
+    box-shadow: 0 12px 24px rgba(15, 23, 42, 0.12);
 }
 
 .portfolio-card h3 {
     font-size: 1.5rem;
-    font-weight: 600;
+    font-weight: 700;
     color: #2563eb;
     margin-bottom: 1rem;
 }
@@ -46,24 +69,24 @@
     font-size: 0.95rem;
 }
 
-/* Sector Specific Styles */
 .back-button {
     background: #f1f5f9;
     color: #475569;
     border: none;
-    padding: 0.5rem 1rem;
-    border-radius: 0.5rem;
-    font-weight: 600;
+    padding: 0.6rem 1.1rem;
+    border-radius: 0.65rem;
+    font-weight: 700;
     cursor: pointer;
-    margin-bottom: 1.5rem;
-    display: flex;
-    items-center: center;
+    margin-bottom: 0.5rem;
+    display: inline-flex;
+    align-items: center;
     gap: 0.5rem;
-    transition: background 0.2s;
+    transition: background 0.2s, transform 0.2s;
 }
 
 .back-button:hover {
     background: #e2e8f0;
+    transform: translateY(-1px);
 }
 
 .sector-card {
@@ -72,30 +95,168 @@
     border-left: 4px solid #2563eb;
 }
 
-.sector-card h3 {
-    font-size: 1.1rem;
-    margin-bottom: 0;
-    color: #1e293b;
+.stocks-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-bottom: 1rem;
+}
+
+.header-left {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.header-titles {
+    display: flex;
+    flex-direction: column;
+}
+
+.refresh-button {
+    background: #0ea5e9;
+    color: white;
+    border: none;
+    padding: 0.65rem 1rem;
+    border-radius: 0.8rem;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 8px 16px rgba(14, 165, 233, 0.25);
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.refresh-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 24px rgba(14, 165, 233, 0.25);
+}
+
+.table-wrapper {
+    margin-top: 20px;
+    overflow-x: auto;
+    background: white;
+    border-radius: 16px;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 12px 24px rgba(15, 23, 42, 0.08);
+}
+
+.stocks-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    min-width: 720px;
+}
+
+.stocks-table th,
+.stocks-table td {
+    padding: 14px 16px;
+    text-align: left;
+    border-bottom: 1px solid #e2e8f0;
+    color: #0f172a;
+    background: white;
+}
+
+.stocks-table thead th {
+    position: sticky;
+    top: 0;
+    background: #0f172a;
+    color: white;
+    z-index: 1;
+    font-weight: 700;
+}
+
+.stocks-table tbody tr:hover {
+    background: #f8fafc;
+}
+
+.section-divider {
+    border: 0;
+    border-top: 1px solid #e2e8f0;
+    margin: 24px 0;
+}
+
+.action-buttons {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    align-items: center;
+    flex-wrap: wrap;
 }
 
 .cluster-btn {
-    background: linear-gradient(135deg, #6a11cb, #2575fc);
+    background: linear-gradient(135deg, #2563eb, #6a11cb);
     color: white;
-    padding: 12px 24px;
+    padding: 14px 20px;
     border-radius: 12px;
-    font-weight: bold;
+    font-weight: 800;
     border: none;
     cursor: pointer;
-    transition: 0.3s;
+    transition: transform 0.25s ease, box-shadow 0.25s ease;
+    box-shadow: 0 10px 24px rgba(37, 99, 235, 0.3);
 }
 
 .cluster-btn:hover {
-    transform: scale(1.05);
+    transform: translateY(-2px) scale(1.02);
+    box-shadow: 0 14px 30px rgba(37, 99, 235, 0.35);
+}
+
+.sentiment-btn {
+    background: linear-gradient(135deg, #ec4899, #8b5cf6);
+    color: white;
+    padding: 14px 20px;
+    border-radius: 12px;
+    font-weight: 800;
+    border: none;
+    cursor: pointer;
+    transition: transform 0.25s ease, box-shadow 0.25s ease;
+    box-shadow: 0 10px 24px rgba(236, 72, 153, 0.35);
+}
+
+.sentiment-btn:hover {
+    transform: translateY(-2px) scale(1.02);
+    box-shadow: 0 16px 36px rgba(139, 92, 246, 0.35);
+}
+
+.sentiment-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+.cluster-section {
+    margin-top: 24px;
+    background: #0f172a;
+    color: #e2e8f0;
+    padding: 20px;
+    border-radius: 16px;
+    box-shadow: 0 16px 32px rgba(0, 0, 0, 0.35);
+}
+
+.section-title {
+    margin-bottom: 12px;
+    font-size: 1.3rem;
+}
+
+.cluster-summary {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 10px;
+    margin-bottom: 16px;
+}
+
+.cluster-visual {
+    margin: 16px 0;
+    background: #111827;
+    padding: 12px;
+    border-radius: 12px;
 }
 
 .ai-report {
-    margin-top: 20px;
-    padding: 20px;
+    margin-top: 12px;
+    padding: 16px;
     border-radius: 12px;
     background: #111;
     color: white;
@@ -104,4 +265,32 @@
 
 .ai-report h3 {
     margin-bottom: 10px;
+}
+
+.error-text {
+    color: #dc2626;
+    margin: 8px 0;
+}
+
+.info-text {
+    color: #0f172a;
+    margin: 8px 0;
+}
+
+@media (max-width: 640px) {
+    .stocks-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .action-buttons {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .cluster-btn,
+    .sentiment-btn {
+        width: 100%;
+        text-align: center;
+    }
 }
