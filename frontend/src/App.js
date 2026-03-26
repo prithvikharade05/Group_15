@@ -4,6 +4,7 @@ import axios from './api/axios';
 import './App.css';
 import Navbar from './components/Navbar';
 import MarketStrip from './components/MarketStrip';
+import ChatWidget from './components/chatbot/ChatWidget';
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import MPIN from "./pages/MPIN";
@@ -136,6 +137,9 @@ function App() {
             </ProtectedRoute>
           } />
         </Routes>
+
+        {/* Global floating chatbot — visible on all pages when authenticated */}
+        <ChatWidget isAuthenticated={isAuthenticated} />
       </div>
     </Router>
   );
