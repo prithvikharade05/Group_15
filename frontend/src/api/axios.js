@@ -1,8 +1,6 @@
 import axios from "axios";
 
-const API = axios.create({
-    baseURL: "/api/",   // ✅ PRODUCTION SAFE
-});
+    baseURL: "/api", 
 
 // Attach token automatically
 API.interceptors.request.use((req) => {

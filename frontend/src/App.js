@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
-import axios from './api/axios';
+import API from './api/axios';
 import './App.css';
 import Navbar from './components/Navbar';
 import MarketStrip from './components/MarketStrip';
@@ -35,7 +35,7 @@ function App() {
 
   const fetchUserProfile = useCallback(async () => {
     try {
-      const response = await axios.get('/auth/profile/');
+      const response = await API.get('/api/auth/profile/');
       setUser(response.data);
       setIsLoggedIn(true);
     } catch (error) {
@@ -47,7 +47,7 @@ function App() {
 
   const fetchMarketData = useCallback(async () => {
     try {
-      const response = await axios.get('/market/');
+      const response = await API.get('/api/market/');
       setMarketData(response.data);
     } catch (error) {
       console.error('Error fetching market data:', error);

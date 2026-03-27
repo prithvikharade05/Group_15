@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import api from '../api/axios';
+import API from '../api/axios';
 import './Portfolio.css';
 import {
   Chart as ChartJS,
@@ -43,7 +43,7 @@ const Portfolio = () => {
     setLoading(true);
     setError('');
     try {
-      const { data } = await api.get('/sectors/', { params: { portfolio } });
+      const { data } = await API.get('/api/sectors/', { params: { portfolio } });
       setSectors(Array.isArray(data) ? data : []);
       setSelectedPortfolio(portfolio);
       setView('sectors');
@@ -60,7 +60,7 @@ const Portfolio = () => {
     setLoading(true);
     setError('');
     try {
-      const { data } = await api.get('/sector-data/', {
+      const { data } = await API.get('/api/sector-data/', {
         params: { sector, portfolio: portfolioValue }
       });
       setStockData(Array.isArray(data) ? data : []);
@@ -82,7 +82,7 @@ const Portfolio = () => {
     try {
       setClusterLoading(true);
       setClusterError(null);
-      const { data } = await api.get('/cluster-data/', {
+      const { data } = await API.get('/api/cluster-data/', {
         params: {
           sector: selectedSector,
           portfolio: selectedPortfolio
