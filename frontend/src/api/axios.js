@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const API = axios.create({
-    baseURL: "http://127.0.0.1:8000/api",
+    baseURL: "/api/",   // ✅ PRODUCTION SAFE
 });
 
 // Attach token automatically
@@ -22,7 +22,7 @@ API.interceptors.response.use(
         if (error.response && error.response.status === 401) {
             console.warn("Unauthorized access - clearing token and redirecting to login.");
             localStorage.removeItem("token");
-            // Prevent redirect loop if already on login page
+
             if (window.location.pathname !== "/login" && window.location.pathname !== "/") {
                 window.location.href = "/login";
             }
