@@ -19,7 +19,7 @@ const Dashboard = () => {
 
   const fetchStocks = useCallback(async () => {
     try {
-      const response = await API.get('/api/stocks/');
+      const response = await API.get('/stocks/');
       setStocks(response.data);
     } catch (error) {
       console.error('Error fetching stocks:', error);
@@ -31,7 +31,7 @@ const Dashboard = () => {
 
   const fetchModels = useCallback(async () => {
     try {
-      const response = await API.get('/api/models/');
+      const response = await API.get('/models/');
       setModels(response.data);
     } catch (error) {
       console.error('Error fetching models:', error);
@@ -40,7 +40,7 @@ const Dashboard = () => {
 
   const fetchPortfolio = useCallback(async () => {
     try {
-      const response = await API.get('/api/portfolio/');
+      const response = await API.get('/portfolio/');
       setPortfolio(response.data);
     } catch (error) {
       console.error('Error fetching portfolio:', error);
@@ -66,14 +66,14 @@ const Dashboard = () => {
     }
 
     try {
-      const response = await API.post('/api/models/run/', {
+      const response = await API.post('/models/run/', {
         model: model.name,
         symbol: selectedStock,
         days: 5
       });
 
       // Refresh predictions
-      const predResponse = await API.get(`/api/predictions/${selectedStock}/`);
+      const predResponse = await API.get(`/predictions/${selectedStock}/`);
       setPredictions(predResponse.data);
 
       alert('Model executed successfully!');
@@ -85,7 +85,7 @@ const Dashboard = () => {
 
   const handleAddToPortfolio = async (symbol) => {
     try {
-      await API.post('/api/portfolio/add/', { symbol });
+      await API.post('/portfolio/add/', { symbol });
       fetchPortfolio();
       alert(`${symbol} added to portfolio!`);
     } catch (error) {
@@ -103,7 +103,7 @@ const Dashboard = () => {
     setChatInput('');
 
     try {
-      const response = await API.post('/api/chat/', { message: chatInput });
+      const response = await API.post('/chat/', { message: chatInput });
       const botMessage = { type: 'bot', text: response.data.response };
       setChatMessages(prev => [...prev, botMessage]);
     } catch (error) {

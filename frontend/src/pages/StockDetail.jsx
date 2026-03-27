@@ -107,7 +107,7 @@ const StockDetail = () => {
   const fetchStockData = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await API.get(`/api/stocks/${symbol}/`);
+      const response = await API.get(`/stocks/${symbol}/`);
       setStockData(response.data);
     } catch (error) {
       console.error('Error fetching stock data:', error);
@@ -119,7 +119,7 @@ const StockDetail = () => {
 
   const fetchPredictions = useCallback(async () => {
     try {
-      const response = await API.get(`/api/predictions/${symbol}/`);
+      const response = await API.get(`/predictions/${symbol}/`);
       setPredictions(response.data);
     } catch (error) {
       console.error('Error fetching predictions:', error);
@@ -128,7 +128,7 @@ const StockDetail = () => {
 
   const fetchModels = useCallback(async () => {
     try {
-      const response = await API.get('/api/models/');
+      const response = await API.get('/models/');
       setModels(response.data);
     } catch (error) {
       console.error('Error fetching models:', error);
@@ -151,7 +151,7 @@ const StockDetail = () => {
       return;
     }
     try {
-      await API.post('/api/predictions/', { symbol, model: selectedModel });
+      await API.post('/predictions/', { symbol, model: selectedModel });
       fetchPredictions();
       alert('Prediction executed successfully!');
     } catch (error) {

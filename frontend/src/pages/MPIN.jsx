@@ -41,7 +41,7 @@ function MPIN({ onMpinSuccess }) {
     setIsLoading(true);
     setStatus("Verifying PIN...");
     try {
-      await API.post("/api/auth/set-mpin/", { mpin: mpin.join("") });
+      await API.post("/auth/set-mpin/", { mpin: mpin.join("") });
       // Mark MPIN as verified in app state + localStorage
       if (onMpinSuccess) onMpinSuccess();
       setStatus("Access granted! Redirecting...");

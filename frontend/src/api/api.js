@@ -1,34 +1,34 @@
-import axios from './axios';
+import API from './axios';
 
 // Centralized API layer for backend integration
 
 export const api = {
     // Market Data
-    getStocks: () => axios.get('/api/stocks/'),
-    getStockData: (symbol) => axios.get(`/api/stocks/${symbol}/`),
+    getStocks: () => API.get('/stocks/'),
+    getStockData: (symbol) => API.get(`/stocks/${symbol}/`),
 
     // Model Management
-    getModels: () => axios.get('/api/models/'),
-    runModel: (model, symbol) => axios.post('/api/models/run/', { model, symbol }),
-    getModelResults: (symbol) => axios.get(`/api/models/results/${symbol}/`),
+    getModels: () => API.get('/models/'),
+    runModel: (model, symbol) => API.post('/models/run/', { model, symbol }),
+    getModelResults: (symbol) => API.get(`/models/results/${symbol}/`),
 
     // Predictions
-    getPredictions: (symbol) => axios.get(`/api/predictions/${symbol}/`),
-    runPrediction: (symbol, model) => axios.post('/api/predictions/', { symbol, model }),
+    getPredictions: (symbol) => API.get(`/predictions/${symbol}/`),
+    runPrediction: (symbol, model) => API.post('/predictions/', { symbol, model }),
 
     // User Authentication
-    login: (credentials) => axios.post('/api/auth/login/', credentials),
-    register: (userData) => axios.post('/api/auth/register/', userData),
-    logout: () => axios.post('/api/auth/logout/'),
+    login: (credentials) => API.post('/auth/login/', credentials),
+    register: (userData) => API.post('/auth/register/', userData),
+    logout: () => API.post('/auth/logout/'),
 
     // Portfolio
-    getPortfolio: () => axios.get('/api/portfolio/'),
-    addStock: (symbol) => axios.post('/api/portfolio/add/', { symbol }),
-    removeStock: (symbol) => axios.delete(`/api/portfolio/remove/${symbol}/`),
+    getPortfolio: () => API.get('/portfolio/'),
+    addStock: (symbol) => API.post('/portfolio/add/', { symbol }),
+    removeStock: (symbol) => API.delete(`/portfolio/remove/${symbol}/`),
 
     // Sentiment Analysis
-    getSentiment: (symbol) => axios.get(`/api/sentiment/${symbol}/`),
+    getSentiment: (symbol) => API.get(`/sentiment/${symbol}/`),
 
     // Chatbot
-    getChatResponse: (message) => axios.post('/api/chat/', { message }),
+    getChatResponse: (message) => API.post('/chat/', { message }),
 };

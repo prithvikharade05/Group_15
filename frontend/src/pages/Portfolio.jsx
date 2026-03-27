@@ -43,7 +43,7 @@ const Portfolio = () => {
     setLoading(true);
     setError('');
     try {
-      const { data } = await API.get('/api/sectors/', { params: { portfolio } });
+      const { data } = await API.get('/sectors/', { params: { portfolio } });
       setSectors(Array.isArray(data) ? data : []);
       setSelectedPortfolio(portfolio);
       setView('sectors');
@@ -60,7 +60,7 @@ const Portfolio = () => {
     setLoading(true);
     setError('');
     try {
-      const { data } = await API.get('/api/sector-data/', {
+      const { data } = await API.get('/sector-data/', {
         params: { sector, portfolio: portfolioValue }
       });
       setStockData(Array.isArray(data) ? data : []);
@@ -82,7 +82,7 @@ const Portfolio = () => {
     try {
       setClusterLoading(true);
       setClusterError(null);
-      const { data } = await API.get('/api/cluster-data/', {
+      const { data } = await API.get('/cluster-data/', {
         params: {
           sector: selectedSector,
           portfolio: selectedPortfolio

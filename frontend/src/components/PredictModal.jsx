@@ -3,11 +3,11 @@ import API from '../api/axios';
 import PredictionChart from './Chart';
 
 const MODEL_CONFIGS = {
-  arima: { name: 'ARIMA Core', endpoint: '/api/arima/', color: 'from-blue-500 to-indigo-600', shadow: 'shadow-blue-500/30', accent: 'text-indigo-600' },
-  lstm: { name: 'LSTM+CNN Matrix', endpoint: '/api/lstm/', color: 'from-violet-500 to-fuchsia-600', shadow: 'shadow-violet-500/30', accent: 'text-violet-600' },
-  regression: { name: 'Regression', endpoint: '/api/regression/', color: 'from-emerald-400 to-teal-500', shadow: 'shadow-emerald-500/30', accent: 'text-emerald-600' },
-  cluster: { name: 'Clustering Engine', endpoint: '/api/cluster/', color: 'from-orange-400 to-rose-500', multiStock: true, shadow: 'shadow-orange-500/30', accent: 'text-rose-600' },
-  portfolio: { name: 'Portfolio Allocator', endpoint: '/api/portfolio/analyze/', color: 'from-indigo-400 to-purple-500', multiStock: true, shadow: 'shadow-indigo-500/30', accent: 'text-purple-600' }
+  arima: { name: 'ARIMA Core', endpoint: '/arima/', color: 'from-blue-500 to-indigo-600', shadow: 'shadow-blue-500/30', accent: 'text-indigo-600' },
+  lstm: { name: 'LSTM+CNN Matrix', endpoint: '/lstm/', color: 'from-violet-500 to-fuchsia-600', shadow: 'shadow-violet-500/30', accent: 'text-violet-600' },
+  regression: { name: 'Regression', endpoint: '/regression/', color: 'from-emerald-400 to-teal-500', shadow: 'shadow-emerald-500/30', accent: 'text-emerald-600' },
+  cluster: { name: 'Clustering Engine', endpoint: '/cluster/', color: 'from-orange-400 to-rose-500', multiStock: true, shadow: 'shadow-orange-500/30', accent: 'text-rose-600' },
+  portfolio: { name: 'Portfolio Allocator', endpoint: '/portfolio/analyze/', color: 'from-indigo-400 to-purple-500', multiStock: true, shadow: 'shadow-indigo-500/30', accent: 'text-purple-600' }
 };
 
 const PredictModal = ({ model = 'arima', isOpen, onClose }) => {

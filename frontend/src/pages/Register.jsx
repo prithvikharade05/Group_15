@@ -27,7 +27,7 @@ function Register() {
     setError("");
     setIsLoading(true);
     try {
-      await API.post("/api/auth/register/", { username, password });
+      await API.post("/auth/register/", { username, password });
       setSuccess("Account created successfully! Redirecting to login...");
       setTimeout(() => navigate("/login"), 1800);
     } catch (err) {

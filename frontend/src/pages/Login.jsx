@@ -17,7 +17,7 @@ function Login({ onLogin }) {
     setError("");
     setIsLoading(true);
     try {
-      const res = await API.post("/api/auth/login/", { username, password });
+      const res = await API.post("/auth/login/", { username, password });
       localStorage.setItem("token", res.data.access);
       if (onLogin) onLogin(res.data);
       navigate("/mpin");

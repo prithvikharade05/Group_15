@@ -35,7 +35,7 @@ function App() {
 
   const fetchUserProfile = useCallback(async () => {
     try {
-      const response = await API.get('/api/auth/profile/');
+      const response = await API.get('/auth/profile/');
       setUser(response.data);
       setIsLoggedIn(true);
     } catch (error) {
@@ -47,7 +47,7 @@ function App() {
 
   const fetchMarketData = useCallback(async () => {
     try {
-      const response = await API.get('/api/market/');
+      const response = await API.get('/market/');
       setMarketData(response.data);
     } catch (error) {
       console.error('Error fetching market data:', error);

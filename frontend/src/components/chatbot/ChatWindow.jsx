@@ -21,7 +21,7 @@ const ChatWindow = ({ isOpen, onClose }) => {
   const initSession = useCallback(async () => {
     if (sessionId) return;
     try {
-      const res = await API.post('/api/chatbot/sessions/');
+      const res = await API.post('/chatbot/sessions/');
       setSessionId(res.data.session_id);
     } catch (err) {
       setError('Could not start chat session. Please try again.');
@@ -51,7 +51,7 @@ const ChatWindow = ({ isOpen, onClose }) => {
     setIsLoading(true);
 
     try {
-      const res = await API.post(`/api/chatbot/sessions/${sessionId}/messages/`, { message: text });
+      const res = await API.post(`/chatbot/sessions/${sessionId}/messages/`, { message: text });
       const aiMsg = {
         role: 'assistant',
         content: res.data.response,
