@@ -17,11 +17,11 @@ pandas==2.2.2
 scikit-learn==1.4.2
 scipy==1.11.4
 
-# Deep Learning (Stable combo)
-tensorflow==2.15.0
-keras==2.15.0
+# Deep Learning (Python 3.12 compatible)
+tensorflow==2.19.1
+keras==3.0.5
 h5py==3.10.0
-wrapt==1.14.1
+wrapt==1.16.0
 protobuf==4.25.3
 grpcio==1.62.2
 
@@ -53,7 +53,7 @@ fastapi==0.110.0
 uvicorn==0.29.0
 starlette==0.36.3
 
-# LangChain / Graph
+# LangGraph
 langgraph==0.2.40
 
 # Utils
