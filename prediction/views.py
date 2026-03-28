@@ -1,6 +1,7 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
+import logging
 
 from prediction.models.arima import run_arima_forecast, format_symbol
 from prediction.models.lstm import run_cnn_lstm_forecast, convert_symbol
@@ -8,6 +9,8 @@ from prediction.models.regression import run_regression_forecast
 from prediction.models.clustering import run_clustering_engine
 from .utils import safe_fetch, standardize_response
 import yfinance as yf
+
+logger = logging.getLogger(__name__)
 
 
 class ARIMAPredictView(APIView):
@@ -18,7 +21,7 @@ class ARIMAPredictView(APIView):
         days = request.data.get("days", 7)
 
         if not symbol:
-            return Response({"error": "Symbol required"}, status=400)
+            return Response(standardize_response(success=False, error="Symbol required"), status=400)
 
         try:
             ticker = format_symbol(symbol)
@@ -42,7 +45,7 @@ class LSTMPredictView(APIView):
         days = request.data.get("days", 5)
 
         if not symbol:
-            return Response({"error": "Symbol required"}, status=400)
+            return Response(standardize_response(success=False, error="Symbol required"), status=400)
 
         try:
             ticker = convert_symbol(symbol)
@@ -88,19 +91,21 @@ class StocksView(APIView):
         data = []
         for sym in symbols:
             try:
-                # Use safe_fetch or direct yf.Ticker for info
-                ticker = yf.Ticker(sym)
-                hist = ticker.history(period="1d")
-                if not hist.empty:
+                fetched = safe_fetch(sym, period="2d", interval="1d")
+                hist = fetched.get("data")
+                if hist is not None and not hist.empty:
                     current = hist['Close'].iloc[-1]
+                    prev = hist['Close'].iloc[-2] if len(hist) > 1 else current
+                    change = ((current - prev) / prev) * 100 if prev else 0
                     data.append({
                         "symbol": sym.replace('.NS', ''),
-                        "name": ticker.info.get('longName', sym.replace('.NS', '')),
+                        "name": sym.replace('.NS', ''),
                         "price": round(float(current), 2),
-                        "change": 0
+                        "change": round(float(change), 2),
+                        "source": fetched.get("source"),
                     })
-            except:
-                pass
+            except Exception as exc:
+                logger.warning("StocksView fetch failed for %s: %s", sym, exc)
         return Response(standardize_response(data=data))
 
 
@@ -110,27 +115,30 @@ class StockDetailView(APIView):
 
     def get(self, request, symbol):
         try:
+            logger.info("StockDetailView hit for symbol=%s", symbol)
             ticker_sym = f"{symbol}.NS"
-            ticker = yf.Ticker(ticker_sym)
-            hist = ticker.history(period="5d")
-            
-            if not hist.empty:
+            fetched = safe_fetch(ticker_sym, period="10d", interval="1d")
+            hist = fetched.get("data")
+
+            if hist is not None and not hist.empty:
                 current = hist['Close'].iloc[-1]
                 prev_close = hist['Close'].iloc[-2] if len(hist) > 1 else current
                 change = current - prev_close
                 change_percent = (change / prev_close) * 100 if prev_close != 0 else 0
-                
+                volume_val = int(hist['Volume'].iloc[-1]) if 'Volume' in hist.columns else 0
+
                 return Response(standardize_response(data={
                     "symbol": symbol,
-                    "name": ticker.info.get('longName', symbol),
+                    "name": symbol,
                     "price": round(float(current), 2),
                     "change": round(float(change), 2),
                     "change_percent": round(float(change_percent), 2),
-                    "volume": int(hist['Volume'].iloc[-1]) if 'Volume' in hist.columns else 0
+                    "volume": volume_val,
+                    "source": fetched.get("source"),
                 }))
-            else:
-                return Response(standardize_response(success=False, error="No data available"), status=404)
-                
+
+            return Response(standardize_response(success=False, error="No data available"), status=200)
+
         except Exception as e:
             return Response(standardize_response(success=False, error=str(e)), status=500)
 
@@ -141,19 +149,17 @@ class PredictionsView(APIView):
 
     def get(self, request, symbol):
         try:
-            # Get recent price data
-            ticker = yf.Ticker(f"{symbol}.NS")
-            hist = ticker.history(period="30d")
-            
-            if len(hist) == 0:
-                return Response({"error": "No data available"}, status=404)
-            
-            # Simple moving average prediction for next 5 days
+            logger.info("PredictionsView hit for symbol=%s", symbol)
+            fetched = safe_fetch(f"{symbol}.NS", period="60d", interval="1d")
+            hist = fetched.get("data")
+
+            if hist is None or len(hist) == 0:
+                return Response(standardize_response(success=False, error="No data available"), status=200)
+
             prices = hist['Close'].tolist()
             predictions = []
-            
+
             for i in range(1, 6):
-                # Simple prediction: current price + random variation
                 import random
                 import pandas as pd
                 predicted_price = prices[-1] * (1 + random.uniform(-0.02, 0.02))
@@ -164,9 +170,9 @@ class PredictionsView(APIView):
                     "target_price": round(predicted_price, 2),
                     "date": (hist.index[-1] + pd.Timedelta(days=i)).strftime('%Y-%m-%d')
                 })
-            
+
             return Response(standardize_response(data=predictions))
-            
+
         except Exception as e:
             return Response(standardize_response(success=False, error=str(e)), status=500)
 
@@ -181,7 +187,7 @@ class ModelsRunView(APIView):
         days = request.data.get("days", 5)
 
         if not model or not symbol:
-            return Response({"error": "Model and symbol required"}, status=400)
+            return Response(standardize_response(success=False, error="Model and symbol required"), status=400)
 
         try:
             if model.lower() == "arima":
@@ -193,7 +199,7 @@ class ModelsRunView(APIView):
             elif model.lower() == "regression":
                 result = run_regression_forecast(symbol, int(days))
             else:
-                return Response({"error": f"Model {model} not supported"}, status=400)
+                return Response(standardize_response(success=False, error=f"Model {model} not supported"), status=400)
 
             return Response(standardize_response(data={
                 "model": model,
@@ -216,22 +222,19 @@ class RunPredictionView(APIView):
         days = request.data.get("days", 5)
 
         if not symbol:
-            return Response({"error": "Symbol required"}, status=400)
+            return Response(standardize_response(success=False, error="Symbol required"), status=400)
 
         try:
-            # Get recent price data
-            ticker = yf.Ticker(f"{symbol}.NS")
-            hist = ticker.history(period="30d")
-            
-            if len(hist) == 0:
-                return Response({"error": "No data available"}, status=404)
-            
-            # Simple moving average prediction for next 5 days
+            fetched = safe_fetch(f"{symbol}.NS", period="60d", interval="1d")
+            hist = fetched.get("data")
+
+            if hist is None or len(hist) == 0:
+                return Response(standardize_response(success=False, error="No data available"), status=200)
+
             prices = hist['Close'].tolist()
             predictions = []
-            
+
             for i in range(1, int(days) + 1):
-                # Simple prediction: current price + random variation
                 import random
                 import pandas as pd
                 predicted_price = prices[-1] * (1 + random.uniform(-0.02, 0.02))
@@ -242,14 +245,14 @@ class RunPredictionView(APIView):
                     "target_price": round(predicted_price, 2),
                     "date": (hist.index[-1] + pd.Timedelta(days=i)).strftime('%Y-%m-%d')
                 })
-            
+
             return Response(standardize_response(data={
                 "symbol": symbol,
                 "model": model,
                 "days": days,
                 "predictions": predictions
             }))
-            
+
         except Exception as e:
             return Response(standardize_response(success=False, error=str(e)), status=500)
 

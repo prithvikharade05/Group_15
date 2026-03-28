@@ -8,6 +8,9 @@ from django.contrib.auth.hashers import make_password, check_password
 
 from .serializers import RegisterSerializer, LoginSerializer
 from prediction.utils import standardize_response
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 # REGISTER
@@ -29,6 +32,7 @@ class LoginView(APIView):
     def post(self, request):
         serializer = LoginSerializer(data=request.data)
         if not serializer.is_valid():
+            logger.warning("Login failed validation: %s", serializer.errors)
             return Response(standardize_response(success=False, error=serializer.errors), status=400)
         
         user = serializer.validated_data
@@ -39,6 +43,18 @@ class LoginView(APIView):
             "refresh": str(refresh),
             "has_mpin": bool(user.mpin)
         }))
+
+
+class LogoutView(APIView):
+    """
+    Stateless logout for JWT clients. Frontend uses this to clear tokens.
+    """
+    authentication_classes = []
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        logger.info("Logout called")
+        return Response(standardize_response(success=True, data={"message": "Logged out"}))
 
 
 # SET MPIN
