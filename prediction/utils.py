@@ -1,9 +1,14 @@
-import yfinance as yf
-import pandas as pd
 import logging
 import os
 import json
+import time
+from typing import List, Dict
+
+import pandas as pd
 import requests
+import yfinance as yf
+
+from prediction.cache import global_cache
 
 logger = logging.getLogger(__name__)
 
@@ -23,7 +28,6 @@ def _load_fallback(symbol: str):
         with open(path, "r") as f:
             raw = json.load(f)
         df = pd.DataFrame(raw)
-        # Expect columns like Date, Close etc.
         if "Date" in df.columns:
             df["Date"] = pd.to_datetime(df["Date"])
             df.set_index("Date", inplace=True)
@@ -33,36 +37,109 @@ def _load_fallback(symbol: str):
         return None
 
 
-def safe_fetch(symbol, period="5d", interval="1d"):
+def _cache_key(symbol: str, period: str, interval: str):
+    return f"{symbol}:{period}:{interval}"
+
+
+def safe_fetch(symbol, period="5d", interval="1d", retries: int = 3, delay: float = 0.5):
     """
-    Safe wrapper for yfinance data fetching with error handling and fallback.
-    Returns dict: {data: DataFrame or None, error: str or None, source: 'live'|'fallback'|None}
+    Resilient wrapper for stock download with cache + retries.
+    Always returns a dict with success flag.
     """
     session = requests.Session()
     session.headers.update({"User-Agent": "Mozilla/5.0"})
 
-    try:
-        data = yf.download(
-            symbol,
-            period=period,
-            interval=interval,
-            progress=False,
-            threads=False,
-            session=session,
-        )
-        if data is None or data.empty:
-            logger.warning("No data found for %s", symbol)
-            fallback = _load_fallback(symbol)
+    key = _cache_key(symbol, period, interval)
+    cached = global_cache.get(key)
+    if cached is not None:
+        return {"success": True, "data": cached, "error": None, "source": "cache"}
+
+    last_err = None
+    for attempt in range(1, retries + 1):
+        try:
+            data = yf.download(
+                symbol,
+                period=period,
+                interval=interval,
+                progress=False,
+                threads=False,
+                session=session,
+            )
+            if data is not None and not data.empty:
+                global_cache.set(key, data)
+                return {"success": True, "data": data, "error": None, "source": "live"}
+            last_err = "no_data"
+            logger.warning("No data for %s (attempt %s)", symbol, attempt)
+        except Exception as exc:
+            last_err = str(exc)
+            logger.warning("Fetch error for %s (attempt %s): %s", symbol, attempt, exc)
+        time.sleep(delay * attempt)
+
+    fallback = _load_fallback(symbol)
+    if fallback is not None:
+        global_cache.set(key, fallback)
+        return {"success": True, "data": fallback, "error": last_err or "fallback_used", "source": "fallback"}
+
+    return {"success": False, "data": None, "error": last_err or "unknown_error", "source": None}
+
+
+def fetch_batch(symbols: List[str], period="5d", interval="1d") -> Dict[str, dict]:
+    """
+    Batch download for multiple symbols with cache + fallback.
+    Returns mapping of symbol -> {success, data, error, source}
+    """
+    results = {}
+    to_fetch = []
+    for sym in symbols:
+        key = _cache_key(sym, period, interval)
+        cached = global_cache.get(key)
+        if cached is not None:
+            results[sym] = {"success": True, "data": cached, "error": None, "source": "cache"}
+        else:
+            to_fetch.append(sym)
+
+    if to_fetch:
+        session = requests.Session()
+        session.headers.update({"User-Agent": "Mozilla/5.0"})
+        try:
+            data = yf.download(
+                to_fetch,
+                period=period,
+                interval=interval,
+                progress=False,
+                threads=False,
+                group_by="ticker",
+                session=session,
+            )
+        except Exception as exc:
+            logger.error("Batch fetch failed: %s", exc)
+            data = None
+
+        for sym in to_fetch:
+            try:
+                sym_df = None
+                if data is not None and not data.empty:
+                    if isinstance(data.columns, pd.MultiIndex):
+                        if sym in data.columns.get_level_values(1):
+                            sym_df = data.xs(sym, level=1, axis=1)
+                    else:
+                        sym_df = data
+                if sym_df is not None and not sym_df.empty:
+                    global_cache.set(_cache_key(sym, period, interval), sym_df)
+                    results[sym] = {"success": True, "data": sym_df, "error": None, "source": "live"}
+                    continue
+            except Exception as exc:
+                logger.warning("Batch parse fail for %s: %s", sym, exc)
+
+            fallback = _load_fallback(sym)
             if fallback is not None:
-                return {"data": fallback, "error": "live_empty_fallback_used", "source": "fallback"}
-            return {"data": None, "error": "no_data"}
-        return {"data": data, "error": None, "source": "live"}
-    except Exception as e:
-        logger.error("Error fetching data for %s: %s", symbol, e)
-        fallback = _load_fallback(symbol)
-        if fallback is not None:
-            return {"data": fallback, "error": str(e), "source": "fallback"}
-        return {"data": None, "error": str(e), "source": None}
+                global_cache.set(_cache_key(sym, period, interval), fallback)
+                results[sym] = {"success": True, "data": fallback, "error": "fallback_used", "source": "fallback"}
+            else:
+                results[sym] = {"success": False, "data": None, "error": "no_data", "source": None}
+
+    return results
+
 
 def standardize_response(success=True, data=None, error=None):
     """

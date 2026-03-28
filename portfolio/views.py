@@ -5,8 +5,11 @@ from sklearn.cluster import KMeans
 from sklearn.preprocessing import MinMaxScaler
 from .models import Stock, MarketSnapshot
 from .services import fetch_sector_live_data
-from prediction.utils import standardize_response
+from prediction.utils import standardize_response, fetch_batch
 from rest_framework import status
+import logging
+
+logger = logging.getLogger(__name__)
 @api_view(['GET'])
 @authentication_classes([])
 @permission_classes([AllowAny])
@@ -75,6 +78,63 @@ def get_sector_data(request):
 
     data = fetch_sector_live_data(sector, portfolio)
     return Response(standardize_response(data=data))
+
+
+@api_view(['GET'])
+@authentication_classes([])
+@permission_classes([AllowAny])
+def bulk_sector_stocks(request):
+    """
+    Optimized bulk fetch for all stocks in a sector using batched yfinance calls + cache.
+    """
+    sector = request.GET.get("sector")
+    portfolio = request.GET.get("portfolio", "NIFTY200")
+
+    if not sector:
+        return Response(standardize_response(success=False, error="sector query parameter is required"), status=400)
+
+    stocks = list(Stock.objects.filter(portfolio=portfolio, sector=sector).values("company", "symbol"))
+    if not stocks:
+        return Response(standardize_response(success=True, data=[]))
+
+    # Build yfinance symbols
+    symbol_map = {}
+    yf_symbols = []
+    for s in stocks:
+        raw = s["symbol"]
+        yf_sym = f\"{raw}.NS\" if portfolio == \"NIFTY200\" and not raw.endswith(\".NS\") else raw
+        symbol_map[yf_sym] = raw
+        yf_symbols.append(yf_sym)
+
+    batch = fetch_batch(yf_symbols, period=\"5d\", interval=\"1d\")
+
+    result_rows = []
+    for yf_sym, raw in symbol_map.items():
+        entry = batch.get(yf_sym, {\"success\": False, \"error\": \"missing\", \"data\": None})
+        data = entry.get(\"data\") if entry else None
+        ltp = change = change_pct = volume = None
+        if entry.get(\"success\") and data is not None and not data.empty:
+            ltp = float(data[\"Close\"].iloc[-1])
+            prev = float(data[\"Close\"].iloc[-2]) if len(data) > 1 else ltp
+            change_val = ltp - prev
+            change = round(change_val, 2)
+            change_pct = round((change_val / prev) * 100, 2) if prev else 0
+            volume = int(data[\"Volume\"].iloc[-1]) if \"Volume\" in data.columns else None
+        result_rows.append({
+            \"company\": next((s[\"company\"] for s in stocks if s[\"symbol\"] == raw), raw),
+            \"symbol\": raw,
+            \"portfolio\": portfolio,
+            \"sector\": sector,
+            \"ltp\": ltp,
+            \"change_percent\": change_pct,
+            \"change\": change,
+            \"volume\": volume,
+            \"source\": entry.get(\"source\"),
+            \"error\": entry.get(\"error\"),
+        })
+
+    logger.info(\"Bulk sector fetch sector=%s portfolio=%s cache_hits=%s\", sector, portfolio, sum(1 for v in batch.values() if v.get(\"source\") == \"cache\"))
+    return Response(standardize_response(data=result_rows))
 
 
 @api_view(['GET'])

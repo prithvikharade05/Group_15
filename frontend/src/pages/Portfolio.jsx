@@ -64,7 +64,7 @@ const Portfolio = () => {
     setLoading(true);
     setError('');
     try {
-      const res = await API.get('/portfolio/sector-data/', {
+      const res = await API.get('/sector/stocks/', {
         params: { sector, portfolio: portfolioValue }
       });
       if (res.data.success) {
