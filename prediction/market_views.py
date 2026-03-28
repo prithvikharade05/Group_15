@@ -1,9 +1,9 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
-import yfinance as yf
 import logging
-from .utils import standardize_response, safe_fetch
+from .utils import standardize_response
+from .fetch_engine import fetch_live_price
 
 logger = logging.getLogger(__name__)
 
@@ -17,27 +17,23 @@ class MarketTickerView(APIView):
         data = []
         for sym in symbols:
             try:
-                fetched = safe_fetch(sym, period="5d", interval="1d")
-                info = fetched.get("data")
-                if fetched.get("success") and info is not None and len(info) >= 2 and "Close" in info.columns:
-                    current = info['Close'].iloc[-1]
-                    prev = info['Close'].iloc[-2]
-                    change = ((current - prev) / prev) * 100 if prev else 0
-                    data.append({
-                        "symbol": sym.replace('.NS', ''),
-                        "price": round(current, 2),
-                        "change": round(change, 2),
-                        "source": fetched.get("source"),
+                live = fetch_live_price(sym)
+                payload = {"symbol": sym.replace(".NS", "")}
+                if live.get("success") and live.get("data"):
+                    info = live["data"]
+                    payload.update({
+                        "price": info.get("price"),
+                        "change": info.get("change_pct"),
+                        "source": info.get("source"),
                     })
                 else:
-                    # record graceful fallback entry so ticker strip remains stable
-                    data.append({
-                        "symbol": sym.replace('.NS', ''),
+                    payload.update({
                         "price": None,
                         "change": None,
-                        "source": fetched.get("source"),
-                        "error": fetched.get("error"),
+                        "error": live.get("error"),
+                        "source": live.get("source"),
                     })
+                data.append(payload)
             except Exception as exc:
                 logger.warning("MarketTickerView failed for %s: %s", sym, exc)
         return Response(standardize_response(data={"tickers": data}))
@@ -53,27 +49,22 @@ class MarketQuoteView(APIView):
             
         try:
             logger.info("MarketQuoteView hit symbol=%s", symbol)
-            fetched = safe_fetch(symbol, period="5d", interval="1d")
-            info = fetched.get("data")
+            live = fetch_live_price(symbol)
 
-            if fetched.get("success") and info is not None and len(info) >= 2 and "Close" in info.columns:
-                current = info['Close'].iloc[-1]
-                prev = info['Close'].iloc[-2]
-                change_pct = ((current - prev) / prev) * 100 if prev else 0
-                change_val = current - prev
-                
+            if live.get("success") and live.get("data"):
+                info = live["data"]
                 return Response(standardize_response(data={
                     "symbol": symbol.replace('.NS', ''),
-                    "price": round(current, 2),
-                    "change_pct": round(change_pct, 2),
-                    "change_val": round(change_val, 2),
-                    "open": round(info['Open'].iloc[-1], 2),
-                    "high": round(info['High'].iloc[-1], 2),
-                    "low": round(info['Low'].iloc[-1], 2),
-                    "volume": int(info['Volume'].iloc[-1]),
-                    "source": fetched.get("source"),
+                    "price": round(info.get("price", 0), 2),
+                    "change_pct": round(info.get("change_pct", 0), 2) if info.get("change_pct") is not None else None,
+                    "change_val": round(info.get("change", 0), 2) if info.get("change") is not None else None,
+                    "open": info.get("prev_close"),
+                    "high": None,
+                    "low": None,
+                    "volume": info.get("volume"),
+                    "source": info.get("source"),
                 }))
-            return Response(standardize_response(success=False, error="Insufficient data available."), status=200)
+            return Response(standardize_response(success=False, error=live.get("error") or "Insufficient data available."), status=200)
         except Exception as e:
             logger.error("MarketQuoteView error for %s: %s", symbol, e)
             return Response(standardize_response(success=False, error=str(e)))

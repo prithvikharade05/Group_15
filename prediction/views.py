@@ -7,8 +7,8 @@ from prediction.models.arima import run_arima_forecast, format_symbol
 from prediction.models.lstm import run_cnn_lstm_forecast, convert_symbol
 from prediction.models.regression import run_regression_forecast
 from prediction.models.clustering import run_clustering_engine
-from .utils import safe_fetch, standardize_response
-import yfinance as yf
+from .utils import standardize_response
+from .fetch_engine import fetch_historical
 
 logger = logging.getLogger(__name__)
 
@@ -91,11 +91,11 @@ class StocksView(APIView):
         data = []
         for sym in symbols:
             try:
-                fetched = safe_fetch(sym, period="2d", interval="1d")
+                fetched = fetch_historical(sym, period="2d", interval="1d")
                 hist = fetched.get("data")
-                if hist is not None and not hist.empty:
-                    current = hist['Close'].iloc[-1]
-                    prev = hist['Close'].iloc[-2] if len(hist) > 1 else current
+                if fetched.get("success") and hist is not None and not hist.empty and "Close" in hist.columns:
+                    current = hist["Close"].iloc[-1]
+                    prev = hist["Close"].iloc[-2] if len(hist) > 1 else current
                     change = ((current - prev) / prev) * 100 if prev else 0
                     data.append({
                         "symbol": sym.replace('.NS', ''),
@@ -116,11 +116,10 @@ class StockDetailView(APIView):
     def get(self, request, symbol):
         try:
             logger.info("StockDetailView hit for symbol=%s", symbol)
-            ticker_sym = f"{symbol}.NS"
-            fetched = safe_fetch(ticker_sym, period="10d", interval="1d")
+            fetched = fetch_historical(symbol, period="10d", interval="1d")
             hist = fetched.get("data")
 
-            if hist is not None and not hist.empty:
+            if fetched.get("success") and hist is not None and not hist.empty and "Close" in hist.columns:
                 current = hist['Close'].iloc[-1]
                 prev_close = hist['Close'].iloc[-2] if len(hist) > 1 else current
                 change = current - prev_close
@@ -150,7 +149,7 @@ class PredictionsView(APIView):
     def get(self, request, symbol):
         try:
             logger.info("PredictionsView hit for symbol=%s", symbol)
-            fetched = safe_fetch(f"{symbol}.NS", period="60d", interval="1d")
+            fetched = fetch_historical(symbol, period="60d", interval="1d")
             hist = fetched.get("data")
 
             if hist is None or len(hist) == 0:
@@ -225,7 +224,7 @@ class RunPredictionView(APIView):
             return Response(standardize_response(success=False, error="Symbol required"), status=400)
 
         try:
-            fetched = safe_fetch(f"{symbol}.NS", period="60d", interval="1d")
+            fetched = fetch_historical(symbol, period="60d", interval="1d")
             hist = fetched.get("data")
 
             if hist is None or len(hist) == 0:

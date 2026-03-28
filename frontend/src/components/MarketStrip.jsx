@@ -43,8 +43,8 @@ const MarketStrip = () => {
 
     fetchTickers();
 
-    // Update every 3 seconds for real-time feel
-    const interval = setInterval(fetchTickers, 5000);
+    // Throttle to 10s to respect provider rate limits
+    const interval = setInterval(fetchTickers, 10000);
 
     // No need for toggle functionality - always run continuously
     return () => {

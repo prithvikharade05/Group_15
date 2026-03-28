@@ -5,7 +5,8 @@ from sklearn.cluster import KMeans
 from sklearn.preprocessing import MinMaxScaler
 from .models import Stock, MarketSnapshot
 from .services import fetch_sector_live_data
-from prediction.utils import standardize_response, fetch_batch
+from prediction.utils import standardize_response
+from prediction.fetch_engine import fetch_batch
 from rest_framework import status
 import logging
 
@@ -106,7 +107,7 @@ def bulk_sector_stocks(request):
         symbol_map[yf_sym] = raw
         yf_symbols.append(yf_sym)
 
-    batch = fetch_batch(yf_symbols, period="5d", interval="1d")
+    batch = fetch_batch([s["symbol"] for s in stocks], period="5d", interval="1d", portfolio=portfolio)
 
     result_rows = []
     for yf_sym, raw in symbol_map.items():
