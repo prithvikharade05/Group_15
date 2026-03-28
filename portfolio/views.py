@@ -102,7 +102,7 @@ def bulk_sector_stocks(request):
     yf_symbols = []
     for s in stocks:
         raw = s["symbol"]
-        yf_sym = f\"{raw}.NS\" if portfolio == \"NIFTY200\" and not raw.endswith(\".NS\") else raw
+        yf_sym = f"{raw}.NS" if portfolio == "NIFTY200" and not raw.endswith(".NS") else raw
         symbol_map[yf_sym] = raw
         yf_symbols.append(yf_sym)
 
