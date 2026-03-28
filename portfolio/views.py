@@ -106,34 +106,34 @@ def bulk_sector_stocks(request):
         symbol_map[yf_sym] = raw
         yf_symbols.append(yf_sym)
 
-    batch = fetch_batch(yf_symbols, period=\"5d\", interval=\"1d\")
+    batch = fetch_batch(yf_symbols, period="5d", interval="1d")
 
     result_rows = []
     for yf_sym, raw in symbol_map.items():
-        entry = batch.get(yf_sym, {\"success\": False, \"error\": \"missing\", \"data\": None})
-        data = entry.get(\"data\") if entry else None
+        entry = batch.get(yf_sym, {"success": False, "error": "missing", "data": None})
+        data = entry.get("data") if entry else None
         ltp = change = change_pct = volume = None
-        if entry.get(\"success\") and data is not None and not data.empty:
-            ltp = float(data[\"Close\"].iloc[-1])
-            prev = float(data[\"Close\"].iloc[-2]) if len(data) > 1 else ltp
+        if entry.get("success") and data is not None and not data.empty:
+            ltp = float(data["Close"].iloc[-1])
+            prev = float(data["Close"].iloc[-2]) if len(data) > 1 else ltp
             change_val = ltp - prev
             change = round(change_val, 2)
             change_pct = round((change_val / prev) * 100, 2) if prev else 0
-            volume = int(data[\"Volume\"].iloc[-1]) if \"Volume\" in data.columns else None
+            volume = int(data["Volume"].iloc[-1]) if "Volume" in data.columns else None
         result_rows.append({
-            \"company\": next((s[\"company\"] for s in stocks if s[\"symbol\"] == raw), raw),
-            \"symbol\": raw,
-            \"portfolio\": portfolio,
-            \"sector\": sector,
-            \"ltp\": ltp,
-            \"change_percent\": change_pct,
-            \"change\": change,
-            \"volume\": volume,
-            \"source\": entry.get(\"source\"),
-            \"error\": entry.get(\"error\"),
+            "company": next((s["company"] for s in stocks if s["symbol"] == raw), raw),
+            "symbol": raw,
+            "portfolio": portfolio,
+            "sector": sector,
+            "ltp": ltp,
+            "change_percent": change_pct,
+            "change": change,
+            "volume": volume,
+            "source": entry.get("source"),
+            "error": entry.get("error"),
         })
 
-    logger.info(\"Bulk sector fetch sector=%s portfolio=%s cache_hits=%s\", sector, portfolio, sum(1 for v in batch.values() if v.get(\"source\") == \"cache\"))
+    logger.info("Bulk sector fetch sector=%s portfolio=%s cache_hits=%s", sector, portfolio, sum(1 for v in batch.values() if v.get("source") == "cache"))
     return Response(standardize_response(data=result_rows))
 
 
