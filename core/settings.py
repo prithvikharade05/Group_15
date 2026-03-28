@@ -32,7 +32,9 @@ SECRET_KEY = 'django-insecure-c6s0@00q38v0wx=vkp9p7vu)^ajg54d99ml_k9mdl)z=rm+o89
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ["alphamindpro.duckdns.org",
+    "127.0.0.1",
+    "localhost"]
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
