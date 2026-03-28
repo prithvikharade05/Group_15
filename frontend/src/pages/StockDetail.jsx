@@ -108,7 +108,11 @@ const StockDetail = () => {
     try {
       setLoading(true);
       const response = await API.get(`/stocks/${symbol}/`);
-      setStockData(response.data);
+      if (response.data.success) {
+        setStockData(response.data.data);
+      } else {
+        setError(response.data.error || 'Failed to fetch stock data');
+      }
     } catch (error) {
       console.error('Error fetching stock data:', error);
       setError('Failed to fetch stock data');
@@ -120,7 +124,9 @@ const StockDetail = () => {
   const fetchPredictions = useCallback(async () => {
     try {
       const response = await API.get(`/predictions/${symbol}/`);
-      setPredictions(response.data);
+      if (response.data.success) {
+        setPredictions(response.data.data);
+      }
     } catch (error) {
       console.error('Error fetching predictions:', error);
     }
@@ -129,7 +135,9 @@ const StockDetail = () => {
   const fetchModels = useCallback(async () => {
     try {
       const response = await API.get('/models/');
-      setModels(response.data);
+      if (response.data.success) {
+        setModels(response.data.data);
+      }
     } catch (error) {
       console.error('Error fetching models:', error);
     }

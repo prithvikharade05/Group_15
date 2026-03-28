@@ -39,7 +39,7 @@ const PredictModal = ({ model = 'arima', isOpen, onClose }) => {
       const res = await API.post(config.endpoint, payload);
 
       if (res.data.success) {
-        setResult(res.data);
+        setResult(res.data.data);
       } else {
         setError(res.data.error || 'Sequence prediction failed');
       }

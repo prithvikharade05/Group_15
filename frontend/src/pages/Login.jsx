@@ -11,15 +11,15 @@ function Login({ onLogin }) {
 
   const handleLogin = async () => {
     if (!username || !password) {
-      setError("Please enter your username and password.");
+      setError("Please enter your email and password.");
       return;
     }
     setError("");
     setIsLoading(true);
     try {
       const res = await API.post("/auth/login/", { username, password });
-      localStorage.setItem("token", res.data.access);
-      if (onLogin) onLogin(res.data);
+      localStorage.setItem("token", res.data.data.access);
+      if (onLogin) onLogin(res.data.data);
       navigate("/mpin");
     } catch (err) {
       const errorMsg =
@@ -80,7 +80,7 @@ function Login({ onLogin }) {
           {/* Username */}
           <div>
             <label className="block text-xs font-semibold uppercase tracking-wider mb-1.5" style={{ color: '#94a3b8' }}>
-              Username
+              Email Address
             </label>
             <input
               className="w-full px-4 py-3 rounded-xl text-sm font-medium transition-all duration-300 outline-none"
@@ -89,10 +89,10 @@ function Login({ onLogin }) {
                 border: '1.5px solid rgba(255,255,255,0.1)',
                 color: '#f1f5f9',
               }}
-              placeholder="Enter your username"
+              placeholder="Enter your email"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              autoComplete="username"
+              autoComplete="email"
               onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
               onFocus={(e) => { e.target.style.borderColor = '#7c3aed'; e.target.style.boxShadow = '0 0 0 3px rgba(124,58,237,0.2)'; }}
               onBlur={(e) => { e.target.style.borderColor = 'rgba(255,255,255,0.1)'; e.target.style.boxShadow = 'none'; }}

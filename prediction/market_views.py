@@ -2,6 +2,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
 import yfinance as yf
+from .utils import standardize_response
 
 class MarketTickerView(APIView):
     authentication_classes = []
@@ -25,7 +26,7 @@ class MarketTickerView(APIView):
                     })
             except:
                 pass
-        return Response({"success": True, "tickers": data})
+        return Response(standardize_response(data={"tickers": data}))
 
 class MarketQuoteView(APIView):
     authentication_classes = []
@@ -46,8 +47,7 @@ class MarketQuoteView(APIView):
                 change_pct = ((current - prev) / prev) * 100
                 change_val = current - prev
                 
-                return Response({
-                    "success": True,
+                return Response(standardize_response(data={
                     "symbol": symbol.replace('.NS', ''),
                     "price": round(current, 2),
                     "change_pct": round(change_pct, 2),
@@ -56,7 +56,7 @@ class MarketQuoteView(APIView):
                     "high": round(info['High'].iloc[-1], 2),
                     "low": round(info['Low'].iloc[-1], 2),
                     "volume": int(info['Volume'].iloc[-1])
-                })
-            return Response({"success": False, "error": "Insufficient data available."})
+                }))
+            return Response(standardize_response(success=False, error="Insufficient data available."))
         except Exception as e:
-            return Response({"success": False, "error": str(e)})
+            return Response(standardize_response(success=False, error=str(e)))

@@ -6,6 +6,7 @@ from prediction.models.arima import run_arima_forecast, format_symbol
 from prediction.models.lstm import run_cnn_lstm_forecast, convert_symbol
 from prediction.models.regression import run_regression_forecast
 from prediction.models.clustering import run_clustering_engine
+from .utils import safe_fetch, standardize_response
 import yfinance as yf
 
 
@@ -27,10 +28,10 @@ class ARIMAPredictView(APIView):
                 forecast_days=int(days)
             )
 
-            return Response(result)
+            return Response(standardize_response(data=result))
 
         except Exception as e:
-            return Response({"error": str(e)}, status=500)
+            return Response(standardize_response(success=False, error=str(e)), status=500)
 
 
 class LSTMPredictView(APIView):
@@ -51,10 +52,10 @@ class LSTMPredictView(APIView):
                 forecast_days=int(days)
             )
 
-            return Response(result)
+            return Response(standardize_response(data=result))
 
         except Exception as e:
-            return Response({"error": str(e)}, status=500)
+            return Response(standardize_response(success=False, error=str(e)), status=500)
 
 
 class RegressionPredictView(APIView):
@@ -65,7 +66,7 @@ class RegressionPredictView(APIView):
         days = request.data.get("days", 5)
 
         result = run_regression_forecast(symbol, int(days))
-        return Response(result)
+        return Response(standardize_response(data=result))
 
 
 class ClusterView(APIView):
@@ -75,7 +76,7 @@ class ClusterView(APIView):
         stocks = request.data.get("stocks", [])
 
         result = run_clustering_engine(stocks)
-        return Response(result)
+        return Response(standardize_response(data=result))
 
 
 # STOCKS LIST
@@ -87,19 +88,20 @@ class StocksView(APIView):
         data = []
         for sym in symbols:
             try:
+                # Use safe_fetch or direct yf.Ticker for info
                 ticker = yf.Ticker(sym)
-                info = ticker.history(period="1d")
-                if len(info) > 0:
-                    current = info['Close'].iloc[-1]
+                hist = ticker.history(period="1d")
+                if not hist.empty:
+                    current = hist['Close'].iloc[-1]
                     data.append({
                         "symbol": sym.replace('.NS', ''),
                         "name": ticker.info.get('longName', sym.replace('.NS', '')),
                         "price": round(float(current), 2),
-                        "change": 0  # Simplified
+                        "change": 0
                     })
             except:
                 pass
-        return Response(data)
+        return Response(standardize_response(data=data))
 
 
 # SINGLE STOCK DETAIL
@@ -108,28 +110,29 @@ class StockDetailView(APIView):
 
     def get(self, request, symbol):
         try:
-            ticker = yf.Ticker(f"{symbol}.NS")
-            info = ticker.history(period="1d")
+            ticker_sym = f"{symbol}.NS"
+            ticker = yf.Ticker(ticker_sym)
+            hist = ticker.history(period="5d")
             
-            if len(info) > 0:
-                current = info['Close'].iloc[-1]
-                prev_close = info['Close'].iloc[-2] if len(info) > 1 else current
+            if not hist.empty:
+                current = hist['Close'].iloc[-1]
+                prev_close = hist['Close'].iloc[-2] if len(hist) > 1 else current
                 change = current - prev_close
                 change_percent = (change / prev_close) * 100 if prev_close != 0 else 0
                 
-                return Response({
+                return Response(standardize_response(data={
                     "symbol": symbol,
                     "name": ticker.info.get('longName', symbol),
                     "price": round(float(current), 2),
                     "change": round(float(change), 2),
                     "change_percent": round(float(change_percent), 2),
-                    "volume": int(info['Volume'].iloc[-1]) if 'Volume' in info.columns else 0
-                })
+                    "volume": int(hist['Volume'].iloc[-1]) if 'Volume' in hist.columns else 0
+                }))
             else:
-                return Response({"error": "No data available"}, status=404)
+                return Response(standardize_response(success=False, error="No data available"), status=404)
                 
         except Exception as e:
-            return Response({"error": str(e)}, status=500)
+            return Response(standardize_response(success=False, error=str(e)), status=500)
 
 
 # PREDICTIONS FOR A STOCK
@@ -162,10 +165,10 @@ class PredictionsView(APIView):
                     "date": (hist.index[-1] + pd.Timedelta(days=i)).strftime('%Y-%m-%d')
                 })
             
-            return Response(predictions)
+            return Response(standardize_response(data=predictions))
             
         except Exception as e:
-            return Response({"error": str(e)}, status=500)
+            return Response(standardize_response(success=False, error=str(e)), status=500)
 
 
 # MODELS RUN ENDPOINT
@@ -192,15 +195,15 @@ class ModelsRunView(APIView):
             else:
                 return Response({"error": f"Model {model} not supported"}, status=400)
 
-            return Response({
+            return Response(standardize_response(data={
                 "model": model,
                 "symbol": symbol,
                 "days": days,
                 "result": result
-            })
+            }))
 
         except Exception as e:
-            return Response({"error": str(e)}, status=500)
+            return Response(standardize_response(success=False, error=str(e)), status=500)
 
 
 # RUN PREDICTION ENDPOINT
@@ -240,15 +243,15 @@ class RunPredictionView(APIView):
                     "date": (hist.index[-1] + pd.Timedelta(days=i)).strftime('%Y-%m-%d')
                 })
             
-            return Response({
+            return Response(standardize_response(data={
                 "symbol": symbol,
                 "model": model,
                 "days": days,
                 "predictions": predictions
-            })
+            }))
             
         except Exception as e:
-            return Response({"error": str(e)}, status=500)
+            return Response(standardize_response(success=False, error=str(e)), status=500)
 
 
 # MODELS LIST
@@ -262,4 +265,4 @@ class ModelsView(APIView):
             {"name": "Regression", "description": "Linear Regression Model", "status": "Ready"},
             {"name": "Clustering", "description": "K-Means Clustering Analysis", "status": "Ready"}
         ]
-        return Response(models)
+        return Response(standardize_response(data=models))

@@ -1,17 +1,17 @@
 from rest_framework.decorators import api_view, permission_classes, authentication_classes
 from rest_framework.response import Response
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from sklearn.cluster import KMeans
 from sklearn.preprocessing import MinMaxScaler
 from .models import Stock, MarketSnapshot
 from .services import fetch_sector_live_data
-
-
+from prediction.utils import standardize_response
+from rest_framework import status
 @api_view(['GET'])
 @authentication_classes([])
 @permission_classes([AllowAny])
 def get_portfolios(request):
-    return Response(["NIFTY200", "USA200"])
+    return Response(standardize_response(data=["NIFTY200", "USA200"]))
 
 
 @api_view(['GET'])
@@ -21,7 +21,9 @@ def list_portfolio(request):
     """
     Simple portfolio list to satisfy /api/portfolio/ requests.
     """
-    return Response([{"name": "NIFTY200"}, {"name": "USA200"}])
+    # In a real app, this would fetch from a UserPortfolio model.
+    # For now, returning a standardized response with mock data.
+    return Response(standardize_response(data=[{"name": "NIFTY200"}, {"name": "USA200"}]))
 
 
 @api_view(['GET'])
@@ -35,7 +37,7 @@ def get_sectors(request):
         .distinct()
         .order_by("sector")
     )
-    return Response(list(sectors))
+    return Response(standardize_response(data=list(sectors)))
 
 
 @api_view(['GET'])
@@ -58,7 +60,7 @@ def get_stocks(request):
         "volume",
     )
 
-    return Response(list(stocks))
+    return Response(standardize_response(data=list(stocks)))
 
 
 @api_view(['GET'])
@@ -69,10 +71,10 @@ def get_sector_data(request):
     portfolio = request.GET.get("portfolio")
 
     if not sector:
-        return Response({"error": "sector query parameter is required"}, status=400)
+        return Response(standardize_response(success=False, error="sector query parameter is required"), status=400)
 
     data = fetch_sector_live_data(sector, portfolio)
-    return Response(data)
+    return Response(standardize_response(data=data))
 
 
 @api_view(['GET'])
@@ -88,7 +90,7 @@ def cluster_data(request):
     ).order_by("-timestamp").first()
 
     if not snapshot:
-        return Response({"error": "No snapshot data"}, status=404)
+        return Response(standardize_response(success=False, error="No snapshot data"), status=404)
 
     stocks = snapshot.stocks.all()
 
@@ -103,7 +105,7 @@ def cluster_data(request):
         symbols.append(stock.symbol)
 
     if len(data) < 3:
-        return Response({"error": "Not enough data"}, status=400)
+        return Response(standardize_response(success=False, error="Not enough data"), status=400)
 
     # Normalize data
     scaler = MinMaxScaler()
@@ -164,7 +166,26 @@ def cluster_data(request):
         "message": f"{trend} momentum detected. Leaders: {top_gainer['symbol']}, Weakest: {top_loser['symbol']}"
     }
 
-    return Response({
+    return Response(standardize_response(data={
         "points": points,
         "report": report
-    })
+    }))
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def add_stock(request):
+    symbol = request.data.get("symbol")
+    if not symbol:
+        return Response(standardize_response(success=False, error="Symbol required"), status=400)
+    # Mock behavior for now as requested
+    return Response(standardize_response(success=True, data={"message": f"{symbol} added to portfolio"}))
+
+
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated])
+def remove_stock(request, symbol):
+    if not symbol:
+        return Response(standardize_response(success=False, error="Symbol required"), status=400)
+    # Mock behavior for now as requested
+    return Response(standardize_response(success=True, data={"message": f"{symbol} removed from portfolio"}))

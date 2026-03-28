@@ -27,11 +27,16 @@ function Register() {
     setError("");
     setIsLoading(true);
     try {
-      await API.post("/auth/register/", { username, password });
-      setSuccess("Account created successfully! Redirecting to login...");
-      setTimeout(() => navigate("/login"), 1800);
+      const res = await API.post("/auth/register/", { username, password });
+      if (res.data.success) {
+        setSuccess("Account created successfully! Redirecting to login...");
+        setTimeout(() => navigate("/login"), 1800);
+      } else {
+        setError(res.data.error || "Registration failed.");
+      }
     } catch (err) {
       const errorMsg =
+        err.response?.data?.error ||
         err.response?.data?.username?.[0] ||
         err.response?.data?.detail ||
         "Registration failed. Please try again.";

@@ -6,6 +6,8 @@ from .views import (
     get_sector_data,
     list_portfolio,
     cluster_data,
+    add_stock,
+    remove_stock
 )
 
 urlpatterns = [
@@ -15,4 +17,6 @@ urlpatterns = [
     path('stocks/', get_stocks),
     path('sector-data/', get_sector_data),
     path('cluster-data/', cluster_data),
+    path('add/', add_stock),
+    path('remove/<str:symbol>/', remove_stock),
 ]

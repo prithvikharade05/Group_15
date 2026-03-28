@@ -43,11 +43,15 @@ const Portfolio = () => {
     setLoading(true);
     setError('');
     try {
-      const { data } = await API.get('/sectors/', { params: { portfolio } });
-      setSectors(Array.isArray(data) ? data : []);
-      setSelectedPortfolio(portfolio);
-      setView('sectors');
-      navigate('/portfolio');
+      const res = await API.get('/sectors/', { params: { portfolio } });
+      if (res.data.success) {
+        setSectors(Array.isArray(res.data.data) ? res.data.data : []);
+        setSelectedPortfolio(portfolio);
+        setView('sectors');
+        navigate('/portfolio');
+      } else {
+        setError(res.data.error || 'Unable to load sectors.');
+      }
     } catch (err) {
       console.error('Error fetching sectors:', err);
       setError('Unable to load sectors right now.');
@@ -60,10 +64,15 @@ const Portfolio = () => {
     setLoading(true);
     setError('');
     try {
-      const { data } = await API.get('/sector-data/', {
+      const res = await API.get('/sector-data/', {
         params: { sector, portfolio: portfolioValue }
       });
-      setStockData(Array.isArray(data) ? data : []);
+      if (res.data.success) {
+        setStockData(Array.isArray(res.data.data) ? res.data.data : []);
+      } else {
+        setError(res.data.error || 'Failed to load sector data.');
+        setStockData([]);
+      }
     } catch (err) {
       console.error('Error fetching live sector data:', err);
       const apiMessage = err.response?.data?.error;
@@ -82,13 +91,17 @@ const Portfolio = () => {
     try {
       setClusterLoading(true);
       setClusterError(null);
-      const { data } = await API.get('/cluster-data/', {
+      const res = await API.get('/cluster-data/', {
         params: {
           sector: selectedSector,
           portfolio: selectedPortfolio
         }
       });
-      setClusterData(data);
+      if (res.data.success) {
+        setClusterData(res.data.data);
+      } else {
+        setClusterError(res.data.error || 'Failed to run clustering engine');
+      }
     } catch (error) {
       console.error('Cluster error:', error);
       setClusterError('Failed to run clustering engine');

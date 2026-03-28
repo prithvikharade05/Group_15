@@ -101,7 +101,11 @@ const SectorSentiment = () => {
       setError("");
       try {
         const res = await API.get(`/sentiment/sector/${encodeURIComponent(sector)}/`);
-        setData(res.data);
+        if (res.data.success) {
+          setData(res.data.data);
+        } else {
+          setError(res.data.error || "Unable to load sentiment.");
+        }
       } catch (err) {
         setError(err.response?.data?.error || "Unable to load sentiment.");
       } finally {

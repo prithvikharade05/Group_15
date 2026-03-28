@@ -36,8 +36,12 @@ function App() {
   const fetchUserProfile = useCallback(async () => {
     try {
       const response = await API.get('/auth/profile/');
-      setUser(response.data);
-      setIsLoggedIn(true);
+      if (response.data.success) {
+        setUser(response.data.data);
+        setIsLoggedIn(true);
+      } else {
+        setIsLoggedIn(false);
+      }
     } catch (error) {
       console.error('Error fetching user profile:', error);
       setIsLoggedIn(false);
@@ -48,7 +52,9 @@ function App() {
   const fetchMarketData = useCallback(async () => {
     try {
       const response = await API.get('/market/');
-      setMarketData(response.data);
+      if (response.data.success) {
+        setMarketData(response.data.data);
+      }
     } catch (error) {
       console.error('Error fetching market data:', error);
     } finally {

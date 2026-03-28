@@ -1,6 +1,7 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny
+from prediction.utils import standardize_response
 
 from .scraper import fetch_sector_news
 from .sentiment_engine import aggregate_sector
@@ -41,25 +42,23 @@ class SectorSentimentView(APIView):
         articles = fetch_sector_news(sector)
 
         if not articles:
-            return Response(
-                {
-                    "sector": sector,
-                    "score": 0,
-                    "label": "Neutral",
-                    "news_count": 0,
-                    "top_positive_stocks": [],
-                    "top_negative_stocks": [],
-                    "key_positive_news": [],
-                    "key_negative_news": [],
-                    "report": {
-                        "summary": "No news available currently.",
-                        "key_drivers": [],
-                        "impact_analysis": "Insufficient data.",
-                        "risk_signals": [],
-                        "final_insight": "Market sentiment cannot be determined.",
-                    },
-                }
-            )
+            return Response(standardize_response(data={
+                "sector": sector,
+                "score": 0,
+                "label": "Neutral",
+                "news_count": 0,
+                "top_positive_stocks": [],
+                "top_negative_stocks": [],
+                "key_positive_news": [],
+                "key_negative_news": [],
+                "report": {
+                    "summary": "No news available currently.",
+                    "key_drivers": [],
+                    "impact_analysis": "Insufficient data.",
+                    "risk_signals": [],
+                    "final_insight": "Market sentiment cannot be determined.",
+                },
+            }))
 
         agg = aggregate_sector(articles)
 
@@ -76,16 +75,14 @@ class SectorSentimentView(APIView):
             agg["label"], agg["score"], agg["news"], agg["top_positive"], agg["top_negative"]
         )
 
-        return Response(
-            {
-                "sector": sector,
-                "score": agg.get("score", 0),
-                "label": agg.get("label", "Neutral"),
-                "news_count": len(agg.get("news", [])),
-                "top_positive_stocks": list(agg.get("top_positive_stocks", [])),
-                "top_negative_stocks": list(agg.get("top_negative_stocks", [])),
-                "key_positive_news": key_positive_news,
-                "key_negative_news": key_negative_news,
-                "report": report,
-            }
-        )
+        return Response(standardize_response(data={
+            "sector": sector,
+            "score": agg.get("score", 0),
+            "label": agg.get("label", "Neutral"),
+            "news_count": len(agg.get("news", [])),
+            "top_positive_stocks": list(agg.get("top_positive_stocks", [])),
+            "top_negative_stocks": list(agg.get("top_negative_stocks", [])),
+            "key_positive_news": key_positive_news,
+            "key_negative_news": key_negative_news,
+            "report": report,
+        }))

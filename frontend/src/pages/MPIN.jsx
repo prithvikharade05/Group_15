@@ -41,13 +41,20 @@ function MPIN({ onMpinSuccess }) {
     setIsLoading(true);
     setStatus("Verifying PIN...");
     try {
-      await API.post("/auth/set-mpin/", { mpin: mpin.join("") });
-      // Mark MPIN as verified in app state + localStorage
-      if (onMpinSuccess) onMpinSuccess();
-      setStatus("Access granted! Redirecting...");
-      setTimeout(() => navigate("/stock"), 1500);
-    } catch {
-      setError("Incorrect PIN. Please try again.");
+      const res = await API.post("/auth/set-mpin/", { mpin: mpin.join("") });
+      if (res.data.success) {
+        // Mark MPIN as verified in app state + localStorage
+        if (onMpinSuccess) onMpinSuccess();
+        setStatus("Access granted! Redirecting...");
+        setTimeout(() => navigate("/dashboard"), 1500);
+      } else {
+        setError(res.data.error || "Incorrect PIN. Please try again.");
+        setMpin(["", "", "", ""]);
+        setStatus("");
+        setIsLoading(false);
+      }
+    } catch (err) {
+      setError(err.response?.data?.error || "Incorrect PIN. Please try again.");
       setMpin(["", "", "", ""]);
       setStatus("");
       setIsLoading(false);

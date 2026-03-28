@@ -22,7 +22,9 @@ const ChatWindow = ({ isOpen, onClose }) => {
     if (sessionId) return;
     try {
       const res = await API.post('/chatbot/sessions/');
-      setSessionId(res.data.session_id);
+      if (res.data.success) {
+        setSessionId(res.data.data.session_id);
+      }
     } catch (err) {
       setError('Could not start chat session. Please try again.');
     }
@@ -52,12 +54,16 @@ const ChatWindow = ({ isOpen, onClose }) => {
 
     try {
       const res = await API.post(`/chatbot/sessions/${sessionId}/messages/`, { message: text });
-      const aiMsg = {
-        role: 'assistant',
-        content: res.data.response,
-        timestamp: res.data.message?.timestamp || new Date().toISOString(),
-      };
-      setMessages(prev => [...prev, aiMsg]);
+      if (res.data.success) {
+        const aiMsg = {
+          role: 'assistant',
+          content: res.data.data.response,
+          timestamp: res.data.data.message?.timestamp || new Date().toISOString(),
+        };
+        setMessages(prev => [...prev, aiMsg]);
+      } else {
+        setError(res.data.error || 'Failed to get response.');
+      }
     } catch (err) {
       setError('Failed to get response. Please try again.');
     } finally {

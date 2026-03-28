@@ -20,7 +20,11 @@ const Dashboard = () => {
   const fetchStocks = useCallback(async () => {
     try {
       const response = await API.get('/stocks/');
-      setStocks(response.data);
+      if (response.data.success) {
+        setStocks(response.data.data);
+      } else {
+        setError(response.data.error || 'Failed to fetch stocks');
+      }
     } catch (error) {
       console.error('Error fetching stocks:', error);
       setError('Failed to fetch stocks');
@@ -32,7 +36,9 @@ const Dashboard = () => {
   const fetchModels = useCallback(async () => {
     try {
       const response = await API.get('/models/');
-      setModels(response.data);
+      if (response.data.success) {
+        setModels(response.data.data);
+      }
     } catch (error) {
       console.error('Error fetching models:', error);
     }
@@ -41,7 +47,9 @@ const Dashboard = () => {
   const fetchPortfolio = useCallback(async () => {
     try {
       const response = await API.get('/portfolio/');
-      setPortfolio(response.data);
+      if (response.data.success) {
+        setPortfolio(response.data.data);
+      }
     } catch (error) {
       console.error('Error fetching portfolio:', error);
     }
@@ -74,7 +82,9 @@ const Dashboard = () => {
 
       // Refresh predictions
       const predResponse = await API.get(`/predictions/${selectedStock}/`);
-      setPredictions(predResponse.data);
+      if (predResponse.data.success) {
+        setPredictions(predResponse.data.data);
+      }
 
       alert('Model executed successfully!');
     } catch (error) {
@@ -103,8 +113,21 @@ const Dashboard = () => {
     setChatInput('');
 
     try {
-      const response = await API.post('/chat/', { message: chatInput });
-      const botMessage = { type: 'bot', text: response.data.response };
+      // Chatbot in Dashboard was calling old endpoint. 
+      // Redirecting to ChatWindow logic or using a direct message if available.
+      // Since Dashboard has its own chat UI, we should still handle it properly.
+      // But for production, we prefer the unified ChatWindow.
+      // Fixing the dashboard chat to use the first session if it exists, or create one.
+      
+      let currentSessionId = localStorage.getItem('chat_session_id');
+      if (!currentSessionId) {
+        const sessionRes = await API.post('/chatbot/sessions/');
+        currentSessionId = sessionRes.data.data.session_id;
+        localStorage.setItem('chat_session_id', currentSessionId);
+      }
+
+      const response = await API.post(`/chatbot/sessions/${currentSessionId}/messages/`, { message: chatInput });
+      const botMessage = { type: 'bot', text: response.data.data.response };
       setChatMessages(prev => [...prev, botMessage]);
     } catch (error) {
       console.error('Error sending message:', error);

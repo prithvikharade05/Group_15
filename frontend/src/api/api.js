@@ -10,7 +10,7 @@ export const api = {
     // Model Management
     getModels: () => API.get('/models/'),
     runModel: (model, symbol) => API.post('/models/run/', { model, symbol }),
-    getModelResults: (symbol) => API.get(`/models/results/${symbol}/`),
+    // Removed getModelResults as it doesn't exist in backend URLs
 
     // Predictions
     getPredictions: (symbol) => API.get(`/predictions/${symbol}/`),
@@ -27,8 +27,9 @@ export const api = {
     removeStock: (symbol) => API.delete(`/portfolio/remove/${symbol}/`),
 
     // Sentiment Analysis
-    getSentiment: (symbol) => API.get(`/sentiment/${symbol}/`),
+    getSentiment: (sector) => API.get(`/sentiment/sector/${sector}/`),
 
     // Chatbot
-    getChatResponse: (message) => API.post('/chat/', { message }),
+    getChatResponse: (sessionId, message) => API.post(`/chatbot/sessions/${sessionId}/messages/`, { message }),
+    createSession: () => API.post('/chatbot/sessions/'),
 };

@@ -13,13 +13,15 @@ export const PredictionService = {
 };
 
 export const PortfolioService = {
-  analyze: (stocks) => API.post('/portfolio/analyze/', { stocks }),
+  addStock: (symbol) => API.post('/portfolio/add/', { symbol }),
+  removeStock: (symbol) => API.delete(`/portfolio/remove/${symbol}/`),
 };
 
 export const SentimentService = {
-  analyze: (symbol) => API.post('/sentiment/analyze/', { symbol }),
+  analyze: (sector) => API.get(`/sentiment/sector/${sector}/`),
 };
 
 export const ChatbotService = {
-  ask: (message) => API.post('/chatbot/ask/', { message }),
+  createSession: () => API.post('/chatbot/sessions/'),
+  ask: (sessionId, message) => API.post(`/chatbot/sessions/${sessionId}/messages/`, { message }),
 };

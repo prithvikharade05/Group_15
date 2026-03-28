@@ -7,6 +7,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth.hashers import make_password, check_password
 
 from .serializers import RegisterSerializer, LoginSerializer
+from prediction.utils import standardize_response
 
 
 # REGISTER
@@ -15,9 +16,10 @@ class RegisterView(APIView):
     permission_classes = [AllowAny]
     def post(self, request):
         serializer = RegisterSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-        return Response({"message": "User created"}, status=201)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(standardize_response(success=True, data={"message": "User created"}), status=201)
+        return Response(standardize_response(success=False, error=serializer.errors), status=400)
 
 
 # LOGIN (JWT)
@@ -26,16 +28,17 @@ class LoginView(APIView):
     permission_classes = [AllowAny]
     def post(self, request):
         serializer = LoginSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
+        if not serializer.is_valid():
+            return Response(standardize_response(success=False, error=serializer.errors), status=400)
+        
         user = serializer.validated_data
-
         refresh = RefreshToken.for_user(user)
 
-        return Response({
+        return Response(standardize_response(success=True, data={
             "access": str(refresh.access_token),
             "refresh": str(refresh),
             "has_mpin": bool(user.mpin)
-        })
+        }))
 
 
 # SET MPIN
@@ -46,13 +49,13 @@ class SetMPINView(APIView):
         mpin = request.data.get("mpin")
 
         if not mpin:
-            return Response({"error": "MPIN required"}, status=400)
+            return Response(standardize_response(success=False, error="MPIN required"), status=400)
 
         user = request.user
         user.mpin = make_password(mpin)
         user.save()
 
-        return Response({"message": "MPIN set"})
+        return Response(standardize_response(success=True, data={"message": "MPIN set"}))
 
 
 # VERIFY MPIN
@@ -63,14 +66,14 @@ class VerifyMPINView(APIView):
         mpin = request.data.get("mpin")
 
         if not mpin:
-            return Response({"error": "MPIN required"}, status=400)
+            return Response(standardize_response(success=False, error="MPIN required"), status=400)
 
         user = request.user
 
         if check_password(mpin, user.mpin):
-            return Response({"message": "MPIN verified"})
+            return Response(standardize_response(success=True, data={"message": "MPIN verified"}))
         
-        return Response({"error": "Invalid MPIN"}, status=400)
+        return Response(standardize_response(success=False, error="Invalid MPIN"), status=400)
 
 # PROFILE
 class ProfileView(APIView):
@@ -78,9 +81,9 @@ class ProfileView(APIView):
 
     def get(self, request):
         user = request.user
-        return Response({
+        return Response(standardize_response(success=True, data={
             "id": user.id,
             "username": user.username,
             "email": getattr(user, 'email', ''),
             "has_mpin": bool(user.mpin)
-        })
+        }))

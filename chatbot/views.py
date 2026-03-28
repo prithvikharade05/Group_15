@@ -6,6 +6,7 @@ from django.shortcuts import get_object_or_404
 
 from .models import ChatSession, ChatMessage
 from .pipeline import run_pipeline
+from prediction.utils import standardize_response
 
 
 # ── Helpers ─────────────────────────────────────────────────────────────────
@@ -36,7 +37,7 @@ class SessionView(APIView):
     def post(self, request):
         session = ChatSession.objects.create(user=request.user)
         return Response(
-            {"session_id": str(session.id), "created_at": session.created_at.isoformat()},
+            standardize_response(data={"session_id": str(session.id), "created_at": session.created_at.isoformat()}),
             status=status.HTTP_201_CREATED
         )
 
@@ -47,7 +48,7 @@ class SessionView(APIView):
             {"session_id": str(s.id), "created_at": s.created_at.isoformat(), "updated_at": s.updated_at.isoformat()}
             for s in sessions
         ]
-        return Response(data)
+        return Response(standardize_response(data=data))
 
 
 class MessageView(APIView):
@@ -64,10 +65,10 @@ class MessageView(APIView):
         """Return full chat history for a session."""
         session = self._get_session(session_id, request.user)
         messages = session.messages.order_by("timestamp")
-        return Response({
+        return Response(standardize_response(data={
             "session_id": str(session.id),
             "messages": [_serialize_message(m) for m in messages]
-        })
+        }))
 
     def post(self, request, session_id):
         """Send a user message, run the LangGraph pipeline, return AI response."""
@@ -76,7 +77,7 @@ class MessageView(APIView):
         user_input = request.data.get("message", "").strip()
         if not user_input:
             return Response(
-                {"error": "Message cannot be empty."},
+                standardize_response(success=False, error="Message cannot be empty."),
                 status=status.HTTP_400_BAD_REQUEST
             )
 
@@ -103,7 +104,7 @@ class MessageView(APIView):
         # Update session timestamp
         session.save()
 
-        return Response({
+        return Response(standardize_response(data={
             "response": ai_response,
             "message": _serialize_message(ai_msg)
-        }, status=status.HTTP_200_OK)
+        }), status=status.HTTP_200_OK)
