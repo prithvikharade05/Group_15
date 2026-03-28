@@ -52,6 +52,8 @@ def safe_fetch(symbol, period="5d", interval="1d", retries: int = 3, delay: floa
     key = _cache_key(symbol, period, interval)
     cached = global_cache.get(key)
     if cached is not None:
+        if isinstance(cached, dict) and cached.get("__fail__"):
+            return {"success": False, "data": None, "error": cached["__fail__"], "source": "cached_fail"}
         return {"success": True, "data": cached, "error": None, "source": "cache"}
 
     last_err = None
@@ -80,6 +82,8 @@ def safe_fetch(symbol, period="5d", interval="1d", retries: int = 3, delay: floa
         global_cache.set(key, fallback)
         return {"success": True, "data": fallback, "error": last_err or "fallback_used", "source": "fallback"}
 
+    # negative cache to avoid hammering a failing symbol for TTL duration
+    global_cache.set(key, {"__fail__": last_err or "unknown_error"})
     return {"success": False, "data": None, "error": last_err or "unknown_error", "source": None}
 
 
@@ -94,7 +98,10 @@ def fetch_batch(symbols: List[str], period="5d", interval="1d") -> Dict[str, dic
         key = _cache_key(sym, period, interval)
         cached = global_cache.get(key)
         if cached is not None:
-            results[sym] = {"success": True, "data": cached, "error": None, "source": "cache"}
+            if isinstance(cached, dict) and cached.get("__fail__"):
+                results[sym] = {"success": False, "data": None, "error": cached["__fail__"], "source": "cached_fail"}
+            else:
+                results[sym] = {"success": True, "data": cached, "error": None, "source": "cache"}
         else:
             to_fetch.append(sym)
 

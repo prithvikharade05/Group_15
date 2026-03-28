@@ -19,7 +19,7 @@ class MarketTickerView(APIView):
             try:
                 fetched = safe_fetch(sym, period="5d", interval="1d")
                 info = fetched.get("data")
-                if info is not None and len(info) >= 2:
+                if fetched.get("success") and info is not None and len(info) >= 2 and "Close" in info.columns:
                     current = info['Close'].iloc[-1]
                     prev = info['Close'].iloc[-2]
                     change = ((current - prev) / prev) * 100 if prev else 0
@@ -28,6 +28,15 @@ class MarketTickerView(APIView):
                         "price": round(current, 2),
                         "change": round(change, 2),
                         "source": fetched.get("source"),
+                    })
+                else:
+                    # record graceful fallback entry so ticker strip remains stable
+                    data.append({
+                        "symbol": sym.replace('.NS', ''),
+                        "price": None,
+                        "change": None,
+                        "source": fetched.get("source"),
+                        "error": fetched.get("error"),
                     })
             except Exception as exc:
                 logger.warning("MarketTickerView failed for %s: %s", sym, exc)
@@ -47,7 +56,7 @@ class MarketQuoteView(APIView):
             fetched = safe_fetch(symbol, period="5d", interval="1d")
             info = fetched.get("data")
 
-            if info is not None and len(info) >= 2:
+            if fetched.get("success") and info is not None and len(info) >= 2 and "Close" in info.columns:
                 current = info['Close'].iloc[-1]
                 prev = info['Close'].iloc[-2]
                 change_pct = ((current - prev) / prev) * 100 if prev else 0
