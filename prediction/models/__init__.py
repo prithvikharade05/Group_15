@@ -15,7 +15,7 @@ class MarketTickerSnapshot(models.Model):
     class Meta:
         ordering = ["-timestamp"]
         indexes = [
-            models.Index(fields=["symbol", "-timestamp"], name="prediction_market__symbol_ts_idx"),
+            models.Index(fields=["symbol", "-timestamp"], name="mts_sym_ts_idx"),
         ]
 
     def save(self, *args, **kwargs):

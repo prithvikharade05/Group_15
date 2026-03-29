@@ -28,6 +28,6 @@ class Migration(migrations.Migration):
         ),
         migrations.AddIndex(
             model_name="markettickersnapshot",
-            index=models.Index(fields=["symbol", "-timestamp"], name="prediction_market__symbol_ts_idx"),
+            index=models.Index(fields=["symbol", "-timestamp"], name="mts_sym_ts_idx"),
         ),
     ]
