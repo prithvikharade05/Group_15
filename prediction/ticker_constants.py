@@ -7,8 +7,6 @@ TOP_NIFTY_SYMBOLS = [
     "HINDUNILVR",
     "SBIN",
     "BHARTIARTL",
-    "ITC",
-    "LT",
 ]
 
 COMPANY_LOOKUP = {
@@ -20,6 +18,4 @@ COMPANY_LOOKUP = {
     "HINDUNILVR": "Hindustan Unilever",
     "SBIN": "State Bank of India",
     "BHARTIARTL": "Bharti Airtel",
-    "ITC": "ITC Limited",
-    "LT": "Larsen & Toubro",
 }
