@@ -14,7 +14,7 @@ import random
 from typing import Any, Optional
 
 SUCCESS_DEFAULT_TTL = 180  # 3 minutes (within required 60-300s window)
-FAIL_TTL_RANGE = (120, 300)  # 2-5 minutes
+FAIL_TTL_RANGE = (300, 300)  # fixed 5 minutes for negative cache
 
 
 class MemoryCache:

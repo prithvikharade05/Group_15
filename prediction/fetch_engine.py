@@ -17,6 +17,7 @@ from .multi_source_provider import (
     fetch_yfinance_fast,
     normalize_symbol,
 )
+from .proxy_manager import get_proxy, remove_bad_proxy
 
 logger = logging.getLogger(__name__)
 
@@ -86,11 +87,13 @@ def _sleep_jitter():
     time.sleep(random.uniform(0.8, 1.5))
 
 
-def _session_with_headers(session: Optional[requests.Session] = None) -> requests.Session:
+def _session_with_headers(session: Optional[requests.Session] = None, proxy: Optional[str] = None) -> requests.Session:
     if session:
         return session
     s = requests.Session()
     s.headers.update(SESSION_HEADERS)
+    if proxy:
+        s.proxies = {"http": f"http://{proxy}", "https": f"http://{proxy}"}
     return s
 
 
@@ -153,6 +156,7 @@ def fetch_live_price(symbol: str, portfolio: str = "NIFTY200", session: Optional
         return {"success": True, "data": cached, "error": None, "source": cached.get("source", "cache")}
 
     session = _session_with_headers(session)
+    # 1) direct attempts (yfinance fast then API fallbacks)
     for fetcher in (fetch_yfinance_fast, fetch_twelvedata, fetch_alphavantage):
         try:
             CALL_GATE.before_call()
@@ -173,6 +177,30 @@ def fetch_live_price(symbol: str, portfolio: str = "NIFTY200", session: Optional
             return {"success": True, "data": result, "error": None, "source": result.get("source")}
         CALL_GATE.record_failure()
 
+    # 2) proxy-assisted yfinance attempts
+    for attempt in range(3):
+        proxy = get_proxy()
+        if not proxy:
+            break
+        try:
+            CALL_GATE.before_call()
+        except BackoffActive as exc:
+            logger.warning("Proxy live backoff active for %s (%.1fs)", yf_symbol, exc.cooldown)
+            break
+        _sleep_jitter()
+        prox_session = _session_with_headers(None, proxy=proxy)
+        try:
+            result = fetch_yfinance_fast(yf_symbol, session=prox_session)
+        except Exception as exc:  # noqa: BLE001
+            result = None
+            logger.debug("Proxy fetch failed for %s via %s: %s", yf_symbol, proxy, exc)
+        if result:
+            CALL_GATE.record_success()
+            _cache_success(key, result, ttl=SUCCESS_TTL, persist_disk=True)
+            return {"success": True, "data": result, "error": None, "source": result.get("source")}
+        CALL_GATE.record_failure()
+        remove_bad_proxy(proxy)
+
     disk = DISK_CACHE.get(key)
     if disk:
         return {"success": True, "data": disk, "error": "disk_fallback", "source": "disk"}
@@ -191,21 +219,10 @@ def fetch_historical(symbol: str, period: str = "60d", interval: str = "1d", por
         return {"success": True, "data": cached, "error": None, "source": "cache"}
 
     session = _session_with_headers()
-    try:
-        CALL_GATE.before_call()
-    except BackoffActive as exc:
-        logger.warning("Historical backoff active for %s (%.1fs)", yf_symbol, exc.cooldown)
-        disk = DISK_CACHE.get(key)
-        if disk:
-            df_disk = _load_disk_df(disk)
-            if df_disk is not None:
-                return {"success": True, "data": df_disk, "error": "disk_fallback", "source": "disk"}
-        _cache_failure(key, "backoff_active")
-        return {"success": False, "data": None, "error": "backoff_active", "source": None}
-
-    _sleep_jitter()
     df = None
     try:
+        CALL_GATE.before_call()
+        _sleep_jitter()
         df = yf.download(
             yf_symbol,
             period=period,
@@ -214,6 +231,8 @@ def fetch_historical(symbol: str, period: str = "60d", interval: str = "1d", por
             threads=False,
             session=session,
         )
+    except BackoffActive as exc:
+        logger.warning("Historical backoff active for %s (%.1fs)", yf_symbol, exc.cooldown)
     except Exception as exc:  # noqa: BLE001
         CALL_GATE.record_failure()
         logger.warning("Historical fetch failed for %s: %s", yf_symbol, exc)
@@ -225,6 +244,33 @@ def fetch_historical(symbol: str, period: str = "60d", interval: str = "1d", por
             DISK_CACHE.set(key, _serialize_df(df))
             return {"success": True, "data": df, "error": None, "source": "yfinance"}
         CALL_GATE.record_failure()
+
+    # proxy retry once for historical
+    proxy = get_proxy()
+    if proxy:
+        try:
+            CALL_GATE.before_call()
+            _sleep_jitter()
+            prox_session = _session_with_headers(None, proxy=proxy)
+            df = yf.download(
+                yf_symbol,
+                period=period,
+                interval=interval,
+                progress=False,
+                threads=False,
+                session=prox_session,
+            )
+        except Exception as exc:  # noqa: BLE001
+            df = None
+            CALL_GATE.record_failure()
+            remove_bad_proxy(proxy)
+            logger.debug("Proxy historical failed for %s: %s", yf_symbol, exc)
+        else:
+            if df is not None and not df.empty:
+                CALL_GATE.record_success()
+                _cache_success(key, df, ttl=SUCCESS_TTL, persist_disk=False)
+                DISK_CACHE.set(key, _serialize_df(df))
+                return {"success": True, "data": df, "error": None, "source": "yfinance_proxy"}
 
     disk = DISK_CACHE.get(key)
     if disk:
@@ -265,6 +311,13 @@ def _single_symbol_fallback(symbol: str, key: str, session: requests.Session) ->
 
     _cache_failure(key, "no_data")
     return {"success": False, "data": None, "error": live.get("error") if live else "no_data", "source": live.get("source") if live else None}
+
+
+def smart_fetch(symbol: str, portfolio: str = "NIFTY200") -> Dict[str, Any]:
+    """
+    Alias for live price fetch with full caching + proxy fallback.
+    """
+    return fetch_live_price(symbol, portfolio=portfolio)
 
 
 def fetch_batch(symbols: List[str], period: str = "5d", interval: str = "1d", portfolio: str = "NIFTY200") -> Dict[str, Dict[str, Any]]:
@@ -315,6 +368,28 @@ def fetch_batch(symbols: List[str], period: str = "5d", interval: str = "1d", po
                 batch_df = None
                 CALL_GATE.record_failure()
                 logger.warning("Batch yfinance failed: %s", exc)
+                # proxy retry for the same chunk
+                proxy = get_proxy()
+                if proxy:
+                    try:
+                        CALL_GATE.before_call()
+                        _sleep_jitter()
+                        prox_session = _session_with_headers(None, proxy=proxy)
+                        batch_df = yf.download(
+                            chunk,
+                            period=period,
+                            interval=interval,
+                            progress=False,
+                            threads=False,
+                            group_by="ticker",
+                            session=prox_session,
+                        )
+                        CALL_GATE.record_success()
+                    except Exception as pexc:  # noqa: BLE001
+                        batch_df = None
+                        CALL_GATE.record_failure()
+                        remove_bad_proxy(proxy)
+                        logger.debug("Proxy batch failed: %s", pexc)
         # process chunk symbols
         for sym in chunk:
             key = _cache_key(sym, "hist", period, interval)

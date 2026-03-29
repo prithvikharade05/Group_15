@@ -31,6 +31,7 @@ def fetch_yfinance_fast(symbol: str, session: Optional[requests.Session] = None)
             "change_pct": float(change_pct),
             "volume": int(volume) if volume is not None else None,
             "source": "yfinance",
+            "error": None,
         }
     except Exception as exc:
         logger.debug("yfinance fast failed for %s: %s", symbol, exc)
@@ -62,6 +63,7 @@ def fetch_twelvedata(symbol: str, session: Optional[requests.Session] = None) ->
             "change_pct": change_pct,
             "volume": None,
             "source": "twelvedata",
+            "error": None,
         }
     except Exception as exc:
         logger.debug("TwelveData failed for %s: %s", symbol, exc)
@@ -93,6 +95,7 @@ def fetch_alphavantage(symbol: str, session: Optional[requests.Session] = None) 
             "change_pct": change_pct,
             "volume": None,
             "source": "alphavantage",
+            "error": None,
         }
     except Exception as exc:
         logger.debug("AlphaVantage failed for %s: %s", symbol, exc)
