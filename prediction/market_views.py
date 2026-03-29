@@ -5,6 +5,7 @@ import logging
 from django.db.models import OuterRef, Subquery, F
 from .utils import standardize_response
 from .fetch_engine import fetch_live_price
+from .multi_source_provider import strip_exchange
 from .models import MarketTickerSnapshot
 from .ticker_constants import TOP_NIFTY_SYMBOLS, COMPANY_LOOKUP
 
@@ -67,17 +68,16 @@ class MarketQuoteView(APIView):
 
     def get(self, request):
         symbol = request.query_params.get("symbol", "RELIANCE").upper()
-        if not symbol.endswith('.NS') and not symbol.startswith('^'):
-            symbol += '.NS'
-            
+        portfolio = request.query_params.get("portfolio", "NIFTY200")
         try:
             logger.info("MarketQuoteView hit symbol=%s", symbol)
-            live = fetch_live_price(symbol)
+            live = fetch_live_price(symbol, portfolio=portfolio)
 
             if live.get("success") and live.get("data"):
                 info = live["data"]
+                resolved_symbol = strip_exchange(info.get("symbol") or symbol)
                 return Response(standardize_response(data={
-                    "symbol": symbol.replace('.NS', ''),
+                    "symbol": resolved_symbol,
                     "price": round(info.get("price", 0), 2),
                     "change_pct": round(info.get("change_pct", 0), 2) if info.get("change_pct") is not None else None,
                     "change_val": round(info.get("change", 0), 2) if info.get("change") is not None else None,

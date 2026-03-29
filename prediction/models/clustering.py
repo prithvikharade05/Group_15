@@ -1,32 +1,33 @@
-# 🔥 ADVANCED CLUSTERING ENGINE (FIXED)
+# ADVANCED CLUSTERING ENGINE (TWELVEDATA DATA LAYER)
 
-import yfinance as yf
-import numpy as np
-import pandas as pd
-from sklearn.preprocessing import StandardScaler
-from sklearn.cluster import KMeans
-from sklearn.decomposition import PCA
 import warnings
 
-warnings.filterwarnings('ignore')
+import numpy as np
+import pandas as pd
+from sklearn.cluster import KMeans
+from sklearn.decomposition import PCA
+from sklearn.preprocessing import StandardScaler
+
+from prediction.fetch_engine import fetch_historical
+
+warnings.filterwarnings("ignore")
 
 
 # =========================
 # FETCH FEATURES
 # =========================
 def extract_features(stock_symbols):
-
     features = {}
 
     for symbol in stock_symbols:
         try:
-            ticker = yf.Ticker(symbol + ".NS")
-            hist = ticker.history(period="1y")
+            result = fetch_historical(symbol, period="1y", interval="1d", portfolio="NIFTY200")
+            hist = result.get("data")
 
-            if hist.empty:
+            if hist is None or hist.empty or "Close" not in hist.columns:
                 continue
 
-            close = hist['Close']
+            close = hist["Close"]
             current = float(close.iloc[-1])
             high = float(close.max())
 
@@ -38,10 +39,10 @@ def extract_features(stock_symbols):
                 "return_3m": close.pct_change(63).iloc[-1] * 100,
                 "return_6m": close.pct_change(126).iloc[-1] * 100,
                 "discount": ((high - current) / high) * 100,
-                "ratio": current / high
+                "ratio": current / high,
             }
 
-        except:
+        except Exception:
             continue
 
     return features
@@ -51,7 +52,6 @@ def extract_features(stock_symbols):
 # SCALE
 # =========================
 def scale_features(features_dict):
-
     symbols = []
     matrix = []
 
@@ -77,8 +77,6 @@ def scale_features(features_dict):
 # 🔥 SMART K SELECTION
 # =========================
 def get_optimal_k(n_samples):
-
-    # Minimum 3 stocks per cluster
     max_k = n_samples // 3
 
     if max_k < 2:
@@ -91,7 +89,6 @@ def get_optimal_k(n_samples):
 # CLUSTER
 # =========================
 def run_clustering(X_scaled, n_samples):
-
     k = get_optimal_k(n_samples)
 
     if k == 1:
@@ -105,7 +102,6 @@ def run_clustering(X_scaled, n_samples):
 # PCA
 # =========================
 def generate_pca(X_scaled):
-
     if len(X_scaled) < 3:
         return np.zeros(len(X_scaled)), np.zeros(len(X_scaled))
 
@@ -119,22 +115,15 @@ def generate_pca(X_scaled):
 # MAIN
 # =========================
 def run_clustering_engine(stock_symbols):
-
     features = extract_features(stock_symbols)
 
     if len(features) < 3:
-        return {
-            "success": False,
-            "message": "Need at least 3 stocks"
-        }
+        return {"success": False, "message": "Need at least 3 stocks"}
 
     X_scaled, symbols, _ = scale_features(features)
 
     if X_scaled is None:
-        return {
-            "success": False,
-            "message": "Scaling failed"
-        }
+        return {"success": False, "message": "Scaling failed"}
 
     labels = run_clustering(X_scaled, len(symbols))
 
@@ -143,15 +132,6 @@ def run_clustering_engine(stock_symbols):
     result = []
 
     for i, s in enumerate(symbols):
-        result.append({
-            "symbol": s,
-            "cluster": int(labels[i]),
-            "x": float(pca_x[i]),
-            "y": float(pca_y[i])
-        })
+        result.append({"symbol": s, "cluster": int(labels[i]), "x": float(pca_x[i]), "y": float(pca_y[i])})
 
-    return {
-        "success": True,
-        "clusters": len(set(labels)),
-        "data": result
-    }
+    return {"success": True, "clusters": len(set(labels)), "data": result}

@@ -5,7 +5,7 @@
 - Edit accounts/urls.py: Add path('profile/', ProfileView.as_view()), ✓
 
 ## Step 2: Backend - Add StocksView & ModelsView [DONE]
-- Edit prediction/views.py: Add StocksView (yfinance list), ModelsView (static list) ✓
+- Edit prediction/views.py: Add StocksView (TwelveData-backed list), ModelsView (static list) ✓
 - Edit prediction/urls.py: Add paths ✓
 
 ## Step 3: Backend - Add PortfolioListView [DONE]

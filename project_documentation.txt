@@ -12,7 +12,7 @@ BACKEND:
 - Authentication: SimpleJWT
 - Database: PostgreSQL (alphamind_db)
 - AI/ML Engines: TensorFlow, PyTorch, Scikit-learn, Statsmodels
-- Market Data: yfinance (Yahoo Finance API)
+- Market Data: TwelveData (via REST time_series/price)
 
 FRONTEND:
 - Framework: React

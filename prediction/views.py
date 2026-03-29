@@ -3,8 +3,8 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 import logging
 
-from prediction.models.arima import run_arima_forecast, format_symbol
-from prediction.models.lstm import run_cnn_lstm_forecast, convert_symbol
+from prediction.models.arima import run_arima_forecast
+from prediction.models.lstm import run_cnn_lstm_forecast
 from prediction.models.regression import run_regression_forecast
 from prediction.models.clustering import run_clustering_engine
 from .utils import standardize_response
@@ -19,16 +19,16 @@ class ARIMAPredictView(APIView):
     def post(self, request):
         symbol = request.data.get("symbol")
         days = request.data.get("days", 7)
+        portfolio = request.data.get("portfolio", "NIFTY200")
 
         if not symbol:
             return Response(standardize_response(success=False, error="Symbol required"), status=400)
 
         try:
-            ticker = format_symbol(symbol)
-
             result = run_arima_forecast(
-                ticker,   # ✅ FIXED
-                forecast_days=int(days)
+                symbol,
+                forecast_days=int(days),
+                portfolio=portfolio
             )
 
             return Response(standardize_response(data=result))
@@ -43,16 +43,16 @@ class LSTMPredictView(APIView):
     def post(self, request):
         symbol = request.data.get("symbol")
         days = request.data.get("days", 5)
+        portfolio = request.data.get("portfolio", "NIFTY200")
 
         if not symbol:
             return Response(standardize_response(success=False, error="Symbol required"), status=400)
 
         try:
-            ticker = convert_symbol(symbol)
-
             result = run_cnn_lstm_forecast(
-                ticker,   # ✅ FIXED
-                forecast_days=int(days)
+                symbol,
+                forecast_days=int(days),
+                portfolio=portfolio
             )
 
             return Response(standardize_response(data=result))
@@ -67,8 +67,9 @@ class RegressionPredictView(APIView):
     def post(self, request):
         symbol = request.data.get("symbol")
         days = request.data.get("days", 5)
+        portfolio = request.data.get("portfolio", "NIFTY200")
 
-        result = run_regression_forecast(symbol, int(days))
+        result = run_regression_forecast(symbol, int(days), portfolio=portfolio)
         return Response(standardize_response(data=result))
 
 
@@ -87,19 +88,20 @@ class StocksView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        symbols = ['RELIANCE.NS', 'TCS.NS', 'HDFCBANK.NS', 'INFY.NS', 'HINDUNILVR.NS']
+        portfolio = request.query_params.get("portfolio", "NIFTY200")
+        symbols = ['RELIANCE', 'TCS', 'HDFCBANK', 'INFY', 'HINDUNILVR']
         data = []
         for sym in symbols:
             try:
-                fetched = fetch_historical(sym, period="2d", interval="1d")
+                fetched = fetch_historical(sym, period="2d", interval="1d", portfolio=portfolio)
                 hist = fetched.get("data")
                 if fetched.get("success") and hist is not None and not hist.empty and "Close" in hist.columns:
                     current = hist["Close"].iloc[-1]
                     prev = hist["Close"].iloc[-2] if len(hist) > 1 else current
                     change = ((current - prev) / prev) * 100 if prev else 0
                     data.append({
-                        "symbol": sym.replace('.NS', ''),
-                        "name": sym.replace('.NS', ''),
+                        "symbol": sym,
+                        "name": sym,
                         "price": round(float(current), 2),
                         "change": round(float(change), 2),
                         "source": fetched.get("source"),
@@ -115,8 +117,9 @@ class StockDetailView(APIView):
 
     def get(self, request, symbol):
         try:
+            portfolio = request.query_params.get("portfolio", "NIFTY200")
             logger.info("StockDetailView hit for symbol=%s", symbol)
-            fetched = fetch_historical(symbol, period="10d", interval="1d")
+            fetched = fetch_historical(symbol, period="10d", interval="1d", portfolio=portfolio)
             hist = fetched.get("data")
 
             if fetched.get("success") and hist is not None and not hist.empty and "Close" in hist.columns:
@@ -148,8 +151,9 @@ class PredictionsView(APIView):
 
     def get(self, request, symbol):
         try:
+            portfolio = request.query_params.get("portfolio", "NIFTY200")
             logger.info("PredictionsView hit for symbol=%s", symbol)
-            fetched = fetch_historical(symbol, period="60d", interval="1d")
+            fetched = fetch_historical(symbol, period="60d", interval="1d", portfolio=portfolio)
             hist = fetched.get("data")
 
             if hist is None or len(hist) == 0:
@@ -184,19 +188,18 @@ class ModelsRunView(APIView):
         model = request.data.get("model")
         symbol = request.data.get("symbol")
         days = request.data.get("days", 5)
+        portfolio = request.data.get("portfolio", "NIFTY200")
 
         if not model or not symbol:
             return Response(standardize_response(success=False, error="Model and symbol required"), status=400)
 
         try:
             if model.lower() == "arima":
-                ticker = format_symbol(symbol)
-                result = run_arima_forecast(ticker, forecast_days=int(days))
+                result = run_arima_forecast(symbol, forecast_days=int(days), portfolio=portfolio)
             elif model.lower() == "lstm":
-                ticker = convert_symbol(symbol)
-                result = run_cnn_lstm_forecast(ticker, forecast_days=int(days))
+                result = run_cnn_lstm_forecast(symbol, forecast_days=int(days), portfolio=portfolio)
             elif model.lower() == "regression":
-                result = run_regression_forecast(symbol, int(days))
+                result = run_regression_forecast(symbol, int(days), portfolio=portfolio)
             else:
                 return Response(standardize_response(success=False, error=f"Model {model} not supported"), status=400)
 
@@ -219,12 +222,13 @@ class RunPredictionView(APIView):
         symbol = request.data.get("symbol")
         model = request.data.get("model", "Simple Moving Average")
         days = request.data.get("days", 5)
+        portfolio = request.data.get("portfolio", "NIFTY200")
 
         if not symbol:
             return Response(standardize_response(success=False, error="Symbol required"), status=400)
 
         try:
-            fetched = fetch_historical(symbol, period="60d", interval="1d")
+            fetched = fetch_historical(symbol, period="60d", interval="1d", portfolio=portfolio)
             hist = fetched.get("data")
 
             if hist is None or len(hist) == 0:

@@ -13,7 +13,7 @@ import threading
 import random
 from typing import Any, Optional
 
-SUCCESS_DEFAULT_TTL = 180  # 3 minutes (within required 60-300s window)
+SUCCESS_DEFAULT_TTL = 600  # 10 minutes (DB is primary; in-memory is short helper)
 FAIL_TTL_RANGE = (300, 300)  # fixed 5 minutes for negative cache
 
 

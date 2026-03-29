@@ -6,10 +6,7 @@ from sklearn.preprocessing import MinMaxScaler
 from .models import Stock, MarketSnapshot
 from .services import fetch_sector_live_data
 from prediction.utils import standardize_response
-from prediction.fetch_engine import fetch_batch
-from prediction.cache_manager import memory_cache
-import time
-import random
+from prediction.models.clustering import run_clustering_engine
 from rest_framework import status
 import logging
 
@@ -89,7 +86,7 @@ def get_sector_data(request):
 @permission_classes([AllowAny])
 def bulk_sector_stocks(request):
     """
-    Optimized bulk fetch for all stocks in a sector using batched yfinance calls + cache.
+    DB-first sector fetch using TwelveData (lazy load when user clicks).
     """
     sector = request.GET.get("sector")
     portfolio = request.GET.get("portfolio", "NIFTY200")
@@ -97,61 +94,16 @@ def bulk_sector_stocks(request):
     if not sector:
         return Response(standardize_response(success=False, error="sector query parameter is required"), status=400)
 
-    stocks = list(Stock.objects.filter(portfolio=portfolio, sector=sector).values("company", "symbol"))
-    if not stocks:
-        return Response(standardize_response(success=True, data=[]))
+    stocks_data = fetch_sector_live_data(sector, portfolio)
 
-    cache_key = f"sector_bulk:{portfolio}:{sector}"
-    cached = memory_cache.get(cache_key)
-    if cached:
-        return Response(standardize_response(data=cached))
+    # Kick off clustering (result ignored here; dedicated endpoint will use DB snapshots)
+    try:
+        run_clustering_engine([s["symbol"] for s in stocks_data])
+    except Exception as exc:
+        logger.warning("Clustering failed for sector %s: %s", sector, exc)
 
-    # Build yfinance symbols
-    symbol_map = {}
-    yf_symbols = []
-    for s in stocks:
-        raw = s["symbol"]
-        yf_sym = f"{raw}.NS" if portfolio == "NIFTY200" and not raw.endswith(".NS") else raw
-        symbol_map[yf_sym] = raw
-        yf_symbols.append(yf_sym)
-
-    result_rows = []
-    symbols_only = [s["symbol"] for s in stocks]
-    for i in range(0, len(symbols_only), 20):
-        chunk_symbols = symbols_only[i:i+20]
-        batch = fetch_batch(chunk_symbols, period="5d", interval="1d", portfolio=portfolio)
-        # gentle pacing between chunks
-        time.sleep(random.uniform(0.8, 1.2))
-
-        for yf_sym, raw in symbol_map.items():
-            if raw not in chunk_symbols:
-                continue
-            entry = batch.get(yf_sym, {"success": False, "error": "missing", "data": None})
-            data = entry.get("data") if entry else None
-            ltp = change = change_pct = volume = None
-            if entry.get("success") and data is not None and not getattr(data, "empty", True):
-                ltp = float(data["Close"].iloc[-1])
-                prev = float(data["Close"].iloc[-2]) if len(data) > 1 else ltp
-                change_val = ltp - prev
-                change = round(change_val, 2)
-                change_pct = round((change_val / prev) * 100, 2) if prev else 0
-                volume = int(data["Volume"].iloc[-1]) if "Volume" in data.columns else None
-            result_rows.append({
-                "company": next((s["company"] for s in stocks if s["symbol"] == raw), raw),
-                "symbol": raw,
-                "portfolio": portfolio,
-                "sector": sector,
-                "ltp": ltp,
-                "change_percent": change_pct,
-                "change": change,
-                "volume": volume,
-                "source": entry.get("source"),
-                "error": entry.get("error"),
-            })
-
-    logger.info("Bulk sector fetch sector=%s portfolio=%s rows=%s", sector, portfolio, len(result_rows))
-    memory_cache.set(cache_key, result_rows, ttl=600)
-    return Response(standardize_response(data=result_rows))
+    logger.info("Bulk sector fetch sector=%s portfolio=%s rows=%s", sector, portfolio, len(stocks_data))
+    return Response(standardize_response(data=stocks_data))
 
 
 @api_view(['GET'])

@@ -3,7 +3,6 @@ import random
 import time
 from typing import List
 
-import requests
 from django.db import transaction
 from django.utils import timezone
 
@@ -13,28 +12,13 @@ from .ticker_constants import TOP_NIFTY_SYMBOLS, COMPANY_LOOKUP
 
 logger = logging.getLogger(__name__)
 
-FETCH_INTERVAL_SECONDS = 15 * 60  # 15 minutes
-BROWSER_HEADERS = {
-    "User-Agent": (
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
-        "(KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36"
-    ),
-    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
-    "Accept-Language": "en-US,en;q=0.9",
-    "Connection": "keep-alive",
-}
-
-
-def _build_session() -> requests.Session:
-    session = requests.Session()
-    session.headers.update(BROWSER_HEADERS)
-    return session
+FETCH_INTERVAL_SECONDS = 12 * 60 * 60  # 12 hours
 
 
 def _normalize_symbol(sym: str) -> str:
-    if sym.startswith("^") or sym.endswith(".NS"):
+    if sym.startswith("^") or sym.endswith(".NSE"):
         return sym
-    return f"{sym}.NS"
+    return f"{sym}.NSE"
 
 
 def _prune_history(symbols: List[str], keep: int = 50):
@@ -56,7 +40,6 @@ def fetch_and_store_once() -> int:
     Fetch the configured tickers once and persist snapshots.
     Returns number of rows stored.
     """
-    session = _build_session()
     now = timezone.now()
     snapshots = []
 
@@ -66,13 +49,7 @@ def fetch_and_store_once() -> int:
             # polite pacing between requests
             time.sleep(random.uniform(0.5, 1.5))
 
-            live = None
-            for attempt in (1, 2):  # one retry max
-                live = fetch_live_price(normalized, session=session)
-                if live.get("success") and live.get("data"):
-                    break
-                if attempt == 1:
-                    time.sleep(random.uniform(0.5, 1.0))
+            live = fetch_live_price(normalized)
 
             if not live or not (live.get("success") and live.get("data")):
                 logger.warning("Ticker fetch failed for %s: %s", base_symbol, live.get("error") if live else "unknown")

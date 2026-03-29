@@ -8,7 +8,7 @@ logger = logging.getLogger(__name__)
 
 
 class Command(BaseCommand):
-    help = "Run the 15-minute ticker snapshot scheduler (AlphaMind live ticker backend)."
+    help = "Run the 12-hour ticker snapshot scheduler (AlphaMind live ticker backend)."
 
     def add_arguments(self, parser):
         parser.add_argument(

@@ -1,34 +1,38 @@
-# CNN + LSTM Hybrid Model (FIXED VERSION)
+# CNN + LSTM Hybrid Model (TWELVEDATA DATA LAYER)
 
-import yfinance as yf
-import pandas as pd
-import numpy as np
-from sklearn.preprocessing import MinMaxScaler
-from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 import warnings
 
-warnings.filterwarnings('ignore')
+import numpy as np
+import pandas as pd
+from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+from sklearn.preprocessing import MinMaxScaler
+
+from prediction.fetch_engine import fetch_historical
+from prediction.multi_source_provider import strip_exchange
+
+warnings.filterwarnings("ignore")
 
 # TensorFlow
 try:
     import tensorflow as tf
+    from tensorflow.keras.layers import Conv1D, Dense, Dropout, LSTM, MaxPooling1D
     from tensorflow.keras.models import Sequential
-    from tensorflow.keras.layers import Conv1D, MaxPooling1D, LSTM, Dense, Dropout
     from tensorflow.keras.optimizers import Adam
 
     TF_AVAILABLE = True
-except:
+except Exception:
     TF_AVAILABLE = False
 
 
 # =========================
 # FETCH DATA
 # =========================
-def fetch_stock_data(symbol, period="max"):
+def fetch_stock_data(symbol, period="max", portfolio="NIFTY200"):
     try:
-        df = yf.Ticker(symbol + ".NS").history(period=period)
-        return df if not df.empty else None
-    except:
+        result = fetch_historical(symbol, period=period, interval="1d", portfolio=portfolio)
+        df = result.get("data")
+        return df if df is not None and not df.empty else None
+    except Exception:
         return None
 
 
@@ -39,7 +43,7 @@ def clean_data(df):
     if df is None or df.empty:
         return None
 
-    df = df[['Open', 'High', 'Low', 'Close', 'Volume']]
+    df = df[["Open", "High", "Low", "Close", "Volume"]]
     df = df.dropna()
 
     if len(df) < 100:
@@ -54,7 +58,7 @@ def clean_data(df):
 def create_sequences(data, look_back=60):
     X, y = [], []
     for i in range(look_back, len(data)):
-        X.append(data[i-look_back:i])
+        X.append(data[i - look_back : i])
         y.append(data[i, 3])  # Close price
     return np.array(X), np.array(y)
 
@@ -66,17 +70,19 @@ def build_model(input_shape):
     if not TF_AVAILABLE:
         return None
 
-    model = Sequential([
-        Conv1D(64, 3, activation='relu', input_shape=input_shape),
-        MaxPooling1D(2),
-        Dropout(0.2),
-        LSTM(100),
-        Dropout(0.2),
-        Dense(50, activation='relu'),
-        Dense(1)
-    ])
+    model = Sequential(
+        [
+            Conv1D(64, 3, activation="relu", input_shape=input_shape),
+            MaxPooling1D(2),
+            Dropout(0.2),
+            LSTM(100),
+            Dropout(0.2),
+            Dense(50, activation="relu"),
+            Dense(1),
+        ]
+    )
 
-    model.compile(optimizer=Adam(0.001), loss='mse')
+    model.compile(optimizer=Adam(0.001), loss="mse")
     return model
 
 
@@ -84,12 +90,7 @@ def build_model(input_shape):
 # TRAIN
 # =========================
 def train_model(model, X_train, y_train):
-    return model.fit(
-        X_train, y_train,
-        epochs=10,
-        batch_size=32,
-        verbose=0
-    )
+    return model.fit(X_train, y_train, epochs=10, batch_size=32, verbose=0)
 
 
 # =========================
@@ -117,7 +118,6 @@ def predict_future(model, scaler, last_seq, days=5):
 # 🔥 FIXED EVALUATION
 # =========================
 def evaluate_model(model, X_test, y_test, scaler):
-
     y_pred = model.predict(X_test, verbose=0)
 
     dummy_test = np.zeros((len(y_test), 5))
@@ -129,12 +129,10 @@ def evaluate_model(model, X_test, y_test, scaler):
     y_test_actual = scaler.inverse_transform(dummy_test)[:, 3]
     y_pred_actual = scaler.inverse_transform(dummy_pred)[:, 3]
 
-    # ₹ scale
     mae = mean_absolute_error(y_test_actual, y_pred_actual)
     rmse = np.sqrt(mean_squared_error(y_test_actual, y_pred_actual))
     r2 = r2_score(y_test_actual, y_pred_actual)
 
-    # % scale
     mean_price = np.mean(y_test_actual)
 
     mae_pct = (mae / mean_price) * 100
@@ -149,19 +147,18 @@ def evaluate_model(model, X_test, y_test, scaler):
         "mae_percent": round(mae_pct, 2),
         "rmse_percent": round(rmse_pct, 2),
         "r2": round(r2, 2),
-        "accuracy": round(accuracy, 2)
+        "accuracy": round(accuracy, 2),
     }
 
 
 # =========================
 # MAIN FUNCTION
 # =========================
-def run_cnn_lstm_forecast(ticker, period="max", forecast_days=5):
-
+def run_cnn_lstm_forecast(ticker, period="max", forecast_days=5, portfolio="NIFTY200"):
     if not TF_AVAILABLE:
         return {"success": False, "error": "TensorFlow not installed"}
 
-    df = fetch_stock_data(ticker, period)
+    df = fetch_stock_data(ticker, period, portfolio)
     df = clean_data(df)
 
     if df is None:
@@ -186,24 +183,26 @@ def run_cnn_lstm_forecast(ticker, period="max", forecast_days=5):
     last_seq = scaled[-60:]
     predictions = predict_future(model, scaler, last_seq, forecast_days)
 
-    future_dates = pd.date_range(
-        start=df.index[-1] + pd.Timedelta(days=1),
-        periods=forecast_days
-    ).strftime('%Y-%m-%d').tolist()
+    future_dates = pd.date_range(start=df.index[-1] + pd.Timedelta(days=1), periods=forecast_days).strftime(
+        "%Y-%m-%d"
+    ).tolist()
 
     return {
         "success": True,
-        "historical_dates": df.index.strftime('%Y-%m-%d').tolist(),
-        "historical_prices": df['Close'].tolist(),
+        "historical_dates": df.index.strftime("%Y-%m-%d").tolist(),
+        "historical_prices": df["Close"].tolist(),
         "forecast_prices": predictions,
         "forecast_dates": future_dates,
-        **metrics
+        **metrics,
     }
 
 
 # =========================
 # SYMBOL CONVERTER
 # =========================
-def convert_symbol(symbol):
-    symbol = symbol.upper().replace('.NS', '')
-    return symbol + ".NS"
+def convert_symbol(symbol, portfolio="NIFTY200"):
+    # normalize but keep US symbols untouched
+    if portfolio.upper().startswith("USA"):
+        return strip_exchange(symbol.upper())
+    symbol = symbol.upper().replace(".NS", "").replace(".NSE", "")
+    return symbol + ".NSE"

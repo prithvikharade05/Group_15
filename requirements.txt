@@ -71,8 +71,7 @@ packaging==24.0
 regex==2024.4.16
 sympy==1.12
 
-# Finance
-yfinance==0.2.37
+# Finance (TwelveData via requests - no SDK needed)
 
 # Misc
 frozendict==2.4.4

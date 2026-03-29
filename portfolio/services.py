@@ -3,7 +3,7 @@ from prediction.models.lstm import run_cnn_lstm_forecast
 from prediction.models.regression import run_regression_forecast
 from prediction.models.clustering import run_clustering_engine
 from .models import Stock, MarketSnapshot, StockSnapshot
-import yfinance as yf
+from prediction.fetch_engine import fetch_batch
 from django.utils import timezone
 from datetime import timedelta
 
@@ -69,7 +69,7 @@ def safe_round(val, digits=2):
 
 def format_symbol(symbol, portfolio):
     if portfolio == "NIFTY200":
-        return f"{symbol}.NS"
+        return f"{symbol}.NSE"
     elif portfolio == "USA200":
         return symbol
     return symbol
@@ -77,123 +77,94 @@ def format_symbol(symbol, portfolio):
 
 def fetch_sector_live_data(sector_name, portfolio):
     """
-    Fetch live metrics for all stocks belonging to a sector.
-    Uses yfinance's batch Tickers client for efficiency and
-    returns a list of dictionaries ready for JSON serialization.
+    Fetch live metrics for all stocks belonging to a sector using TwelveData.
+    - DB-first: return cached snapshot if fresher than 12h
+    - On miss: fetch once, persist MarketSnapshot + StockSnapshot, update Stock rows
     """
-    stocks = list(
-        Stock.objects.filter(sector=sector_name).values("company", "symbol")
+    now = timezone.now()
+    cutoff = now - timedelta(hours=12)
+    company_map = {s.symbol: s.company for s in Stock.objects.filter(sector=sector_name, portfolio=portfolio)}
+    recent = (
+        MarketSnapshot.objects.filter(sector=sector_name, portfolio=portfolio, timestamp__gte=cutoff)
+        .order_by("-timestamp")
+        .first()
     )
 
+    if recent:
+        rows = []
+        for stock in recent.stocks.all():
+            rows.append({
+                "company": company_map.get(stock.symbol, stock.symbol),
+                "symbol": stock.symbol,
+                "ltp": safe_round(stock.ltp),
+                "change": safe_round(stock.change),
+                "volume": stock.volume,
+                "market_cap": None,
+                "high_52w": None,
+                "low_52w": None,
+                "source": "db",
+            })
+        return rows
+
+    stocks = list(Stock.objects.filter(sector=sector_name, portfolio=portfolio).values("company", "symbol"))
     if not stocks:
         return []
 
-    # Normalize symbols to yfinance format (append .NS when missing)
-    yf_symbols = []
-    symbol_map = {}
-    for stock in stocks:
-        raw_symbol = stock.get("symbol")
-        if not raw_symbol:
-            continue
-        yf_symbol = format_symbol(raw_symbol, portfolio)
-        symbol_map[raw_symbol] = yf_symbol
-        yf_symbols.append(yf_symbol)
-
-    tickers_client = None
-    if yf_symbols:
-        try:
-            tickers_client = yf.Tickers(" ".join(yf_symbols))
-        except Exception:
-            tickers_client = None
+    symbols = [s["symbol"] for s in stocks]
+    batch = fetch_batch(symbols, period="10d", interval="1d", portfolio=portfolio)
 
     results = []
+    stock_snapshots = []
     for stock in stocks:
-        symbol = stock.get("symbol")
-        yf_symbol = symbol_map.get(symbol)
+        symbol = stock["symbol"]
         company = stock.get("company")
-
-        fallback = {
+        entry = batch.get(symbol, {})
+        df = entry.get("data")
+        ltp = change = volume = None
+        if entry.get("success") and df is not None and not getattr(df, "empty", True):
+            ltp = float(df["Close"].iloc[-1])
+            prev = float(df["Close"].iloc[-2]) if len(df) > 1 else ltp
+            change_val = ltp - prev
+            change = round((change_val / prev) * 100, 2) if prev else None
+            if "Volume" in df.columns:
+                try:
+                    volume = int(df["Volume"].iloc[-1])
+                except Exception:
+                    volume = None
+        results.append({
             "company": company,
             "symbol": symbol,
-            "ltp": None,
-            "change": None,
-            "volume": None,
+            "ltp": ltp,
+            "change": change,
+            "volume": volume,
             "market_cap": None,
             "high_52w": None,
             "low_52w": None,
-        }
+            "source": entry.get("source"),
+            "error": entry.get("error"),
+        })
+        stock_snapshots.append(StockSnapshot(
+            snapshot=None,  # placeholder; set after snapshot creation
+            symbol=symbol,
+            ltp=ltp,
+            change=change,
+            volume=volume,
+        ))
 
-        if not tickers_client or not yf_symbol or yf_symbol not in tickers_client.tickers:
-            results.append(fallback)
-            continue
-
-        ticker_obj = tickers_client.tickers.get(yf_symbol)
-
-        try:
-            fast = getattr(ticker_obj, "fast_info", {}) or {}
-            info = getattr(ticker_obj, "info", {}) or {}
-
-            ltp = fast.get("last_price") or info.get("currentPrice")
-            prev_close = fast.get("previous_close") or info.get("previousClose")
-
-            change = None
-            if ltp is not None and prev_close not in (None, 0):
-                change = ((ltp - prev_close) / prev_close) * 100
-
-            volume = fast.get("volume") or info.get("volume")
-            high_52w = fast.get("year_high") or info.get("fiftyTwoWeekHigh")
-            low_52w = fast.get("year_low") or info.get("fiftyTwoWeekLow")
-            market_cap = info.get("marketCap")
-
-            result_row = {
-                "company": company,
-                "symbol": symbol,
-                "ltp": safe_round(ltp),
-                "change": safe_round(change),
-                "volume": volume if volume is not None else None,
-                "market_cap": market_cap if market_cap is not None else None,
-                "high_52w": safe_round(high_52w),
-                "low_52w": safe_round(low_52w),
-            }
-            results.append(result_row)
-        except Exception:
-            results.append(fallback)
-
-    # Persist snapshot (avoid duplicates within 30 seconds)
     try:
-        now = timezone.now()
-        recent = MarketSnapshot.objects.filter(
-            sector=sector_name, portfolio=portfolio
-        ).order_by('-timestamp').first()
-
-        if recent and recent.timestamp >= now - timedelta(seconds=30):
-            snapshot = recent
-        else:
-            snapshot = MarketSnapshot.objects.create(
-                sector=sector_name,
-                portfolio=portfolio,
-            )
-
-        stock_snapshots = []
-        for stock in results:
-            volume_val = stock.get("volume")
-            try:
-                volume_val = int(volume_val) if volume_val is not None else None
-            except (TypeError, ValueError):
-                volume_val = None
-
-            stock_snapshots.append(StockSnapshot(
-                snapshot=snapshot,
-                symbol=stock.get("symbol"),
-                ltp=stock.get("ltp"),
-                change=stock.get("change"),
-                volume=volume_val,
-            ))
-
-        if stock_snapshots:
-            StockSnapshot.objects.bulk_create(stock_snapshots)
+        snapshot = MarketSnapshot.objects.create(sector=sector_name, portfolio=portfolio)
+        for snap in stock_snapshots:
+            snap.snapshot = snapshot
+        StockSnapshot.objects.bulk_create(stock_snapshots)
     except Exception:
-        # Snapshot persistence is best-effort; fail silently to keep API responsive.
         pass
+
+    # update base Stock table for DB-first reads
+    for row in results:
+        Stock.objects.filter(symbol=row["symbol"], portfolio=portfolio).update(
+            ltp=row.get("ltp"),
+            change_percent=row.get("change"),
+            volume=row.get("volume"),
+        )
 
     return results
