@@ -6,19 +6,13 @@ from typing import List
 from django.db import transaction
 from django.utils import timezone
 
-from .fetch_engine import fetch_live_price
+from .fetch_engine import fetch_batch, fetch_live_price
 from .models import MarketTickerSnapshot
 from .ticker_constants import TOP_NIFTY_SYMBOLS, COMPANY_LOOKUP
 
 logger = logging.getLogger(__name__)
 
 FETCH_INTERVAL_SECONDS = 12 * 60 * 60  # 12 hours
-
-
-def _normalize_symbol(sym: str) -> str:
-    if sym.startswith("^") or sym.endswith(".NSE"):
-        return sym
-    return f"{sym}.NSE"
 
 
 def _prune_history(symbols: List[str], keep: int = 50):
@@ -43,31 +37,32 @@ def fetch_and_store_once() -> int:
     now = timezone.now()
     snapshots = []
 
+    batch = fetch_batch(TOP_NIFTY_SYMBOLS, period="10d", interval="1d", portfolio="NIFTY200")
     for base_symbol in TOP_NIFTY_SYMBOLS:
-        normalized = _normalize_symbol(base_symbol)
         try:
-            # polite pacing between requests
-            time.sleep(random.uniform(0.5, 1.5))
-
-            live = fetch_live_price(normalized)
-
-            if not live or not (live.get("success") and live.get("data")):
-                logger.warning("Ticker fetch failed for %s: %s", base_symbol, live.get("error") if live else "unknown")
+            entry = batch.get(base_symbol, {})
+            df = entry.get("data")
+            if not entry.get("success") or df is None or getattr(df, "empty", True):
+                logger.warning("Ticker fetch failed for %s: %s", base_symbol, entry.get("error"))
                 continue
-
-            info = live["data"]
+            price = float(df["Close"].iloc[-1])
+            prev = float(df["Close"].iloc[-2]) if len(df) > 1 else price
+            change_val = price - prev
+            change_pct = (change_val / prev) * 100 if prev else None
+            volume = int(df["Volume"].iloc[-1]) if "Volume" in df.columns else None
             snapshots.append(
                 MarketTickerSnapshot(
                     symbol=base_symbol,
                     company=COMPANY_LOOKUP.get(base_symbol),
-                    price=info.get("price"),
-                    change=info.get("change"),
-                    change_percent=info.get("change_pct"),
-                    volume=info.get("volume"),
-                    source=info.get("source") or "unknown",
+                    price=price,
+                    change=change_val,
+                    change_percent=change_pct,
+                    volume=volume,
+                    source=entry.get("source") or "twelvedata",
                     timestamp=now,
                 )
             )
+            logger.info("Stored snapshot candidate %s source=%s", base_symbol, entry.get("source"))
         except Exception as exc:  # noqa: BLE001
             logger.exception("Unexpected ticker fetch error for %s: %s", base_symbol, exc)
 

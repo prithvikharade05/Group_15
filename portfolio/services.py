@@ -111,6 +111,7 @@ def fetch_sector_live_data(sector_name, portfolio):
         return []
 
     symbols = [s["symbol"] for s in stocks]
+    logger.info("Sector fetch start sector=%s portfolio=%s symbols=%s", sector_name, portfolio, len(symbols))
     batch = fetch_batch(symbols, period="10d", interval="1d", portfolio=portfolio)
 
     results = []
@@ -156,6 +157,7 @@ def fetch_sector_live_data(sector_name, portfolio):
         for snap in stock_snapshots:
             snap.snapshot = snapshot
         StockSnapshot.objects.bulk_create(stock_snapshots)
+        logger.info("Stored sector snapshot sector=%s portfolio=%s count=%s", sector_name, portfolio, len(stock_snapshots))
     except Exception:
         pass
 

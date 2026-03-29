@@ -25,6 +25,7 @@ SUCCESS_TTL = 600  # 10 minutes in-memory
 HIST_DB_TTL_HOURS = 12
 LIVE_DB_TTL_HOURS = 12
 MIN_CALL_INTERVAL = 1.0  # seconds between outbound calls
+BATCH_SIZE = 5  # strict per requirements
 DISK_CACHE = DiskCache(os.path.join(os.path.dirname(__file__), "models", "data_cache"))
 
 SESSION_HEADERS = {
@@ -40,7 +41,7 @@ SESSION_HEADERS = {
 
 class ExternalCallGate:
     """
-    Very small global gate to make TwelveData usage human-paced.
+    Simple global gate to enforce pacing between requests.
     """
 
     def __init__(self, min_interval: float = MIN_CALL_INTERVAL):
@@ -171,34 +172,37 @@ def _call_time_series(symbols: List[str], interval: str, outputsize: int, sessio
         return {}
 
     joined = ",".join(symbols)
-    CALL_GATE.wait()
-    resp = session.get(
-        TIME_SERIES_URL,
-        params={
-            "symbol": joined,
-            "interval": interval,
-            "outputsize": outputsize,
-            "apikey": API_KEY,
-        },
-        timeout=10,
-    )
-    try:
-        data = resp.json()
-    except Exception:
-        logger.warning("Non-JSON response from TwelveData: %s", resp.text[:200])
-        return {}
+    attempts = 0
+    while attempts < 2:
+        attempts += 1
+        try:
+            CALL_GATE.wait()
+            resp = session.get(
+                TIME_SERIES_URL,
+                params={"symbol": joined, "interval": interval, "outputsize": outputsize, "apikey": API_KEY},
+                timeout=12,
+            )
+            if resp.status_code == 429:
+                logger.warning("Rate limit hit (429) for symbols=%s, attempt=%s", joined, attempts)
+                time.sleep(8)
+                continue
+            data = resp.json()
+        except Exception as exc:
+            logger.error("TwelveData request failed symbols=%s err=%s", joined, exc)
+            time.sleep(1.5)
+            continue
 
-    if isinstance(data, dict) and "status" in data and data.get("status") == "error":
-        logger.warning("TwelveData error: %s", data)
-        return {}
+        if isinstance(data, dict) and data.get("status") == "error":
+            logger.warning("TwelveData error symbols=%s -> %s", joined, data)
+            return {}
 
-    # Single-symbol response returns the payload directly
-    if isinstance(data, dict) and "values" in data:
-        return {symbols[0]: data}
+        if isinstance(data, dict) and "values" in data:
+            logger.info("API call success symbols=%s", joined)
+            return {symbols[0]: data}
 
-    # Multi-symbol response keyed by symbol
-    if isinstance(data, dict):
-        return {k: v for k, v in data.items() if isinstance(v, dict)}
+        if isinstance(data, dict):
+            logger.info("API call success (batched) symbols=%s", joined)
+            return {k: v for k, v in data.items() if isinstance(v, dict)}
 
     return {}
 
@@ -208,7 +212,7 @@ def fetch_historical(symbol: str, period: str = "60d", interval: str = "1d", por
     Fetch historical OHLCV using TwelveData with DB-first caching.
     """
     interval_td = _map_interval(interval)
-    normalized = normalize_symbol(symbol, portfolio)
+    normalized = normalize_symbol(symbol, portfolio or "NIFTY200")
     base_symbol = strip_exchange(normalized)
     mem_key = f"hist:{base_symbol}:{interval_td}"
 
@@ -368,6 +372,7 @@ def fetch_batch(symbols: List[str], period: str = "5d", interval: str = "1d", po
     """
     Batch historical fetch with TwelveData, DB-first.
     Returns mapping raw_symbol -> result dict.
+    Strict batch size <=5 with 1-2s delay between batches.
     """
     results: Dict[str, Dict[str, Any]] = {}
     normalized_map: Dict[str, str] = {}
@@ -381,27 +386,27 @@ def fetch_batch(symbols: List[str], period: str = "5d", interval: str = "1d", po
     session = _session_with_headers()
 
     norm_list = list(normalized_map.keys())
-    chunk_size = 25
 
-    for i in range(0, len(norm_list), chunk_size):
-        chunk = norm_list[i : i + chunk_size]
+    for i in range(0, len(norm_list), BATCH_SIZE):
+        chunk = norm_list[i : i + BATCH_SIZE]
 
-        # First try DB for each symbol
         remaining = []
         for norm in chunk:
             raw = normalized_map[norm]
             base = strip_exchange(norm)
             db_df, db_fresh = _load_series_from_db(base, interval_td, HIST_DB_TTL_HOURS)
             if db_df is not None and db_fresh:
+                logger.info("DB cache hit for %s", base)
                 results[raw] = {"success": True, "data": db_df, "error": None, "source": "db"}
             else:
                 remaining.append(norm)
 
         if not remaining:
+            time.sleep(random.uniform(1.0, 2.0))
             continue
 
         api_payload = _call_time_series(remaining, interval_td, outputsize, session)
-        time.sleep(random.uniform(0.5, 1.0))
+        time.sleep(random.uniform(1.0, 2.0))
 
         for norm in remaining:
             raw = normalized_map[norm]
@@ -415,7 +420,6 @@ def fetch_batch(symbols: List[str], period: str = "5d", interval: str = "1d", po
                 memory_cache.set(f"hist:{base}:{interval_td}", df, ttl=SUCCESS_TTL)
                 results[raw] = {"success": True, "data": df, "error": None, "source": "twelvedata"}
             else:
-                # fallback to stale DB if present
                 db_df, _ = _load_series_from_db(base, interval_td, 10_000)
                 if db_df is not None:
                     results[raw] = {"success": True, "data": db_df, "error": "stale_db", "source": "db_stale"}

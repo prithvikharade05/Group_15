@@ -113,13 +113,14 @@ def cluster_data(request):
     sector = request.GET.get("sector")
     portfolio = request.GET.get("portfolio")
 
-    snapshot = MarketSnapshot.objects.filter(
-        sector=sector,
-        portfolio=portfolio
-    ).order_by("-timestamp").first()
+    snapshot = MarketSnapshot.objects.filter(sector=sector, portfolio=portfolio).order_by("-timestamp").first()
 
     if not snapshot:
-        return Response(standardize_response(success=False, error="No snapshot data"), status=404)
+        # trigger fetch then re-read
+        fetch_sector_live_data(sector, portfolio)
+        snapshot = MarketSnapshot.objects.filter(sector=sector, portfolio=portfolio).order_by("-timestamp").first()
+        if not snapshot:
+            return Response(standardize_response(success=False, error="Snapshot unavailable; retry later"), status=200)
 
     stocks = snapshot.stocks.all()
 
