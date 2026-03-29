@@ -11,9 +11,9 @@ TWELVEDATA_KEY = os.getenv("TWELVEDATA_API_KEY", "")
 ALPHAVANTAGE_KEY = os.getenv("ALPHAVANTAGE_API_KEY", "")
 
 
-def fetch_yfinance_fast(symbol: str) -> Optional[Dict[str, Any]]:
+def fetch_yfinance_fast(symbol: str, session: Optional[requests.Session] = None) -> Optional[Dict[str, Any]]:
     try:
-        ticker = yf.Ticker(symbol)
+        ticker = yf.Ticker(symbol, session=session) if session else yf.Ticker(symbol)
         fast = getattr(ticker, "fast_info", {}) or {}
         info = getattr(ticker, "info", {}) or {}
         price = fast.get("last_price") or info.get("currentPrice")
@@ -37,11 +37,12 @@ def fetch_yfinance_fast(symbol: str) -> Optional[Dict[str, Any]]:
         return None
 
 
-def fetch_twelvedata(symbol: str) -> Optional[Dict[str, Any]]:
+def fetch_twelvedata(symbol: str, session: Optional[requests.Session] = None) -> Optional[Dict[str, Any]]:
     if not TWELVEDATA_KEY:
         return None
     try:
-        resp = requests.get(
+        client = session or requests
+        resp = client.get(
             "https://api.twelvedata.com/quote",
             params={"symbol": symbol, "apikey": TWELVEDATA_KEY},
             timeout=5,
@@ -67,11 +68,12 @@ def fetch_twelvedata(symbol: str) -> Optional[Dict[str, Any]]:
         return None
 
 
-def fetch_alphavantage(symbol: str) -> Optional[Dict[str, Any]]:
+def fetch_alphavantage(symbol: str, session: Optional[requests.Session] = None) -> Optional[Dict[str, Any]]:
     if not ALPHAVANTAGE_KEY:
         return None
     try:
-        resp = requests.get(
+        client = session or requests
+        resp = client.get(
             "https://www.alphavantage.co/query",
             params={"function": "GLOBAL_QUOTE", "symbol": symbol, "apikey": ALPHAVANTAGE_KEY},
             timeout=5,

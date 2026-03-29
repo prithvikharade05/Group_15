@@ -25,7 +25,7 @@ def _cache_key(symbol: str, kind: str, period: str = "", interval: str = ""):
     return f"{kind}:{symbol}:{period}:{interval}"
 
 
-def fetch_live_price(symbol: str, portfolio: str = "NIFTY200") -> Dict[str, Any]:
+def fetch_live_price(symbol: str, portfolio: str = "NIFTY200", session: Optional[requests.Session] = None) -> Dict[str, Any]:
     yf_symbol = normalize_symbol(symbol, portfolio)
     key = _cache_key(yf_symbol, "live")
     cached = memory_cache.get(key)
@@ -36,7 +36,7 @@ def fetch_live_price(symbol: str, portfolio: str = "NIFTY200") -> Dict[str, Any]
 
     # source chain
     for fetcher in (fetch_yfinance_fast, fetch_twelvedata, fetch_alphavantage):
-        res = fetcher(yf_symbol)
+        res = fetcher(yf_symbol, session=session)
         if res:
             memory_cache.set(key, res, ttl=SUCCESS_TTL)
             return {"success": True, "data": res, "error": None}

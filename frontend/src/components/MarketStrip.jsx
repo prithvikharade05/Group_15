@@ -4,34 +4,21 @@ import { MarketService } from '../api/service';
 const MarketStrip = () => {
   const [tickers, setTickers] = useState([]);
 
-  // Nifty 50 stocks list
-  const nifty50Stocks = [
-    'RELIANCE.NS', 'TCS.NS', 'HDFCBANK.NS', 'INFY.NS', 'HINDUNILVR.NS',
-    'ICICIBANK.NS', 'SBIN.NS', 'KOTAKBANK.NS', 'BAJFINANCE.NS',
-    'BHARTIARTL.NS', 'ITC.NS', 'AXISBANK.NS', 'LT.NS', 'ASIANPAINT.NS',
-    'MARUTI.NS', 'WIPRO.NS', 'SUNPHARMA.NS', 'ULTRACEMCO.NS', 'NESTLEIND.NS',
-    'INDUSINDBK.NS', 'JSWSTEEL.NS', 'GRASIM.NS', 'POWERGRID.NS', 'TATASTEEL.NS',
-    'HDFCLIFE.NS', 'BAJAJFINSV.NS', 'DRREDDY.NS', 'EICHERMOT.NS', 'DIVISLAB.NS',
-    'CIPLA.NS', 'SBILIFE.NS', 'SHREECEM.NS', 'APOLLOHOSP.NS',
-    'COALINDIA.NS', 'UPL.NS', 'NTPC.NS', 'BPCL.NS', 'HEROMOTOCO.NS',
-    'HINDALCO.NS', 'IOC.NS', 'ONGC.NS', 'ADANIPORTS.NS', 'GAIL.NS',
-    'ADANIENT.NS', 'BAJAJ-AUTO.NS', 'SIEMENS.NS', 'VEDL.NS',
-    'GODREJCP.NS', 'AMBUJACEM.NS', 'HAVELLS.NS', 'BOSCHLTD.NS',
-    'DABUR.NS', 'BEL.NS', 'BRITANNIA.NS', 'CHOLAFIN.NS', 'COLPAL.NS'
+  const topNiftySymbols = [
+    'RELIANCE', 'TCS', 'HDFCBANK', 'INFY', 'ICICIBANK',
+    'HINDUNILVR', 'SBIN', 'BHARTIARTL', 'ITC', 'LT'
   ];
 
   useEffect(() => {
     const fetchTickers = async () => {
       try {
         const response = await MarketService.getTicker();
-        if (response.data.success) {
-          const allTickers = response.data.tickers || [];
-          const symbolsToMatch = nifty50Stocks.map(s => s.replace('.NS', ''));
-          
-          const validTickers = allTickers
-            .filter(t => symbolsToMatch.includes(t.symbol))
-            .sort((a, b) => Math.abs(b.change) - Math.abs(a.change));
-            
+        if (response.data?.success) {
+          const payload = response.data?.data?.tickers || [];
+          const validTickers = payload
+            .filter(t => topNiftySymbols.includes(t.symbol))
+            .sort((a, b) => Math.abs(b.change || 0) - Math.abs(a.change || 0));
+
           if (validTickers.length > 0) {
             setTickers(validTickers);
           }
@@ -43,8 +30,8 @@ const MarketStrip = () => {
 
     fetchTickers();
 
-    // Throttle to 10s to respect provider rate limits
-    const interval = setInterval(fetchTickers, 10000);
+    // Poll backend snapshots every ~15s (cheap DB reads)
+    const interval = setInterval(fetchTickers, 15000);
 
     // No need for toggle functionality - always run continuously
     return () => {

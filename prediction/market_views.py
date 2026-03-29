@@ -2,8 +2,11 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
 import logging
+from django.db.models import OuterRef, Subquery, F
 from .utils import standardize_response
 from .fetch_engine import fetch_live_price
+from .models import MarketTickerSnapshot
+from .ticker_constants import TOP_NIFTY_SYMBOLS, COMPANY_LOOKUP
 
 logger = logging.getLogger(__name__)
 
@@ -12,30 +15,50 @@ class MarketTickerView(APIView):
     permission_classes = [AllowAny]
 
     def get(self, request):
-        logger.info("MarketTickerView hit")
-        symbols = ['^BSESN', '^NSEI', 'RELIANCE.NS', 'TCS.NS', 'HDFCBANK.NS']
+        logger.info("MarketTickerView hit (DB-backed)")
+
+        latest_ts = Subquery(
+            MarketTickerSnapshot.objects.filter(symbol=OuterRef("symbol"))
+            .order_by("-timestamp")
+            .values("timestamp")[:1]
+        )
+
+        latest_rows = (
+            MarketTickerSnapshot.objects.filter(symbol__in=TOP_NIFTY_SYMBOLS)
+            .annotate(latest_ts=latest_ts)
+            .filter(timestamp=F("latest_ts"))
+        )
+
+        snapshot_map = {row.symbol: row for row in latest_rows}
+
         data = []
-        for sym in symbols:
-            try:
-                live = fetch_live_price(sym)
-                payload = {"symbol": sym.replace(".NS", "")}
-                if live.get("success") and live.get("data"):
-                    info = live["data"]
-                    payload.update({
-                        "price": info.get("price"),
-                        "change": info.get("change_pct"),
-                        "source": info.get("source"),
-                    })
-                else:
-                    payload.update({
-                        "price": None,
-                        "change": None,
-                        "error": live.get("error"),
-                        "source": live.get("source"),
-                    })
-                data.append(payload)
-            except Exception as exc:
-                logger.warning("MarketTickerView failed for %s: %s", sym, exc)
+        for sym in TOP_NIFTY_SYMBOLS:
+            snap = snapshot_map.get(sym)
+            payload = {
+                "symbol": sym,
+                "company": COMPANY_LOOKUP.get(sym),
+                "price": None,
+                "change": None,
+                "change_val": None,
+                "volume": None,
+                "source": None,
+                "timestamp": None,
+            }
+            if snap:
+                payload.update(
+                    {
+                        "price": float(snap.price) if snap.price is not None else None,
+                        "change": float(snap.change_percent)
+                        if snap.change_percent is not None
+                        else None,
+                        "change_val": float(snap.change) if snap.change is not None else None,
+                        "volume": snap.volume,
+                        "source": snap.source,
+                        "timestamp": snap.timestamp,
+                    }
+                )
+            data.append(payload)
+
         return Response(standardize_response(data={"tickers": data}))
 
 class MarketQuoteView(APIView):
