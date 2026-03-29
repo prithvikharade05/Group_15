@@ -7,6 +7,9 @@ from .models import Stock, MarketSnapshot
 from .services import fetch_sector_live_data
 from prediction.utils import standardize_response
 from prediction.fetch_engine import fetch_batch
+from prediction.cache_manager import memory_cache
+import time
+import random
 from rest_framework import status
 import logging
 
@@ -98,6 +101,11 @@ def bulk_sector_stocks(request):
     if not stocks:
         return Response(standardize_response(success=True, data=[]))
 
+    cache_key = f"sector_bulk:{portfolio}:{sector}"
+    cached = memory_cache.get(cache_key)
+    if cached:
+        return Response(standardize_response(data=cached))
+
     # Build yfinance symbols
     symbol_map = {}
     yf_symbols = []
@@ -107,34 +115,42 @@ def bulk_sector_stocks(request):
         symbol_map[yf_sym] = raw
         yf_symbols.append(yf_sym)
 
-    batch = fetch_batch([s["symbol"] for s in stocks], period="5d", interval="1d", portfolio=portfolio)
-
     result_rows = []
-    for yf_sym, raw in symbol_map.items():
-        entry = batch.get(yf_sym, {"success": False, "error": "missing", "data": None})
-        data = entry.get("data") if entry else None
-        ltp = change = change_pct = volume = None
-        if entry.get("success") and data is not None and not data.empty:
-            ltp = float(data["Close"].iloc[-1])
-            prev = float(data["Close"].iloc[-2]) if len(data) > 1 else ltp
-            change_val = ltp - prev
-            change = round(change_val, 2)
-            change_pct = round((change_val / prev) * 100, 2) if prev else 0
-            volume = int(data["Volume"].iloc[-1]) if "Volume" in data.columns else None
-        result_rows.append({
-            "company": next((s["company"] for s in stocks if s["symbol"] == raw), raw),
-            "symbol": raw,
-            "portfolio": portfolio,
-            "sector": sector,
-            "ltp": ltp,
-            "change_percent": change_pct,
-            "change": change,
-            "volume": volume,
-            "source": entry.get("source"),
-            "error": entry.get("error"),
-        })
+    symbols_only = [s["symbol"] for s in stocks]
+    for i in range(0, len(symbols_only), 20):
+        chunk_symbols = symbols_only[i:i+20]
+        batch = fetch_batch(chunk_symbols, period="5d", interval="1d", portfolio=portfolio)
+        # gentle pacing between chunks
+        time.sleep(random.uniform(0.8, 1.2))
 
-    logger.info("Bulk sector fetch sector=%s portfolio=%s cache_hits=%s", sector, portfolio, sum(1 for v in batch.values() if v.get("source") == "cache"))
+        for yf_sym, raw in symbol_map.items():
+            if raw not in chunk_symbols:
+                continue
+            entry = batch.get(yf_sym, {"success": False, "error": "missing", "data": None})
+            data = entry.get("data") if entry else None
+            ltp = change = change_pct = volume = None
+            if entry.get("success") and data is not None and not getattr(data, "empty", True):
+                ltp = float(data["Close"].iloc[-1])
+                prev = float(data["Close"].iloc[-2]) if len(data) > 1 else ltp
+                change_val = ltp - prev
+                change = round(change_val, 2)
+                change_pct = round((change_val / prev) * 100, 2) if prev else 0
+                volume = int(data["Volume"].iloc[-1]) if "Volume" in data.columns else None
+            result_rows.append({
+                "company": next((s["company"] for s in stocks if s["symbol"] == raw), raw),
+                "symbol": raw,
+                "portfolio": portfolio,
+                "sector": sector,
+                "ltp": ltp,
+                "change_percent": change_pct,
+                "change": change,
+                "volume": volume,
+                "source": entry.get("source"),
+                "error": entry.get("error"),
+            })
+
+    logger.info("Bulk sector fetch sector=%s portfolio=%s rows=%s", sector, portfolio, len(result_rows))
+    memory_cache.set(cache_key, result_rows, ttl=600)
     return Response(standardize_response(data=result_rows))
 
 

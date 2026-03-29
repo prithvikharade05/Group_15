@@ -1,40 +1,55 @@
 """
-Cache manager with layered strategy:
-- In-memory TTL cache for fast reads
-- Optional disk cache for fallbacks (JSON per symbol)
-The API is intentionally simple and can be swapped for Redis later.
+Caching utilities:
+- Memory cache with per-entry TTL
+- Negative cache support (stores failures briefly)
+- Disk cache for offline fallback
+
+All functions are thread-safe and can be swapped for Redis later.
 """
 import os
 import json
 import time
 import threading
+import random
 from typing import Any, Optional
 
-DEFAULT_TTL = 120  # seconds
+SUCCESS_DEFAULT_TTL = 180  # 3 minutes (within required 60-300s window)
+FAIL_TTL_RANGE = (120, 300)  # 2-5 minutes
 
 
 class MemoryCache:
-    def __init__(self, ttl: int = DEFAULT_TTL):
-        self.ttl = ttl
+    def __init__(self, default_ttl: int = SUCCESS_DEFAULT_TTL):
+        self.default_ttl = default_ttl
         self._store = {}
         self._lock = threading.Lock()
 
+    @staticmethod
+    def _is_expired(expiry: float) -> bool:
+        return time.time() > expiry
+
+    @staticmethod
+    def is_fail(value: Any) -> bool:
+        return isinstance(value, dict) and value.get("__fail__") is not None
+
     def get(self, key: str) -> Optional[Any]:
-        now = time.time()
         with self._lock:
             entry = self._store.get(key)
             if not entry:
                 return None
             expiry, value = entry
-            if now > expiry:
+            if self._is_expired(expiry):
                 self._store.pop(key, None)
                 return None
             return value
 
     def set(self, key: str, value: Any, ttl: Optional[int] = None):
-        ttl_to_use = ttl if ttl is not None else self.ttl
+        ttl_to_use = ttl if ttl is not None else self.default_ttl
         with self._lock:
             self._store[key] = (time.time() + ttl_to_use, value)
+
+    def set_fail(self, key: str, reason: str, ttl: Optional[int] = None):
+        fail_ttl = ttl if ttl is not None else random.randint(*FAIL_TTL_RANGE)
+        self.set(key, {"__fail__": reason}, ttl=fail_ttl)
 
     def clear(self):
         with self._lock:
