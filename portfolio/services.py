@@ -1,3 +1,5 @@
+import logging
+
 from prediction.models.arima import run_arima_forecast
 from prediction.models.lstm import run_cnn_lstm_forecast
 from prediction.models.regression import run_regression_forecast
@@ -6,6 +8,8 @@ from .models import Stock, MarketSnapshot, StockSnapshot
 from prediction.fetch_engine import fetch_batch
 from django.utils import timezone
 from datetime import timedelta
+
+logger = logging.getLogger(__name__)
 
 
 def portfolio_analysis_engine(stocks):
@@ -144,22 +148,25 @@ def fetch_sector_live_data(sector_name, portfolio):
             "source": entry.get("source"),
             "error": entry.get("error"),
         })
-        stock_snapshots.append(StockSnapshot(
-            snapshot=None,  # placeholder; set after snapshot creation
-            symbol=symbol,
-            ltp=ltp,
-            change=change,
-            volume=volume,
-        ))
+        # Only stage snapshots when we have a valid price
+        if ltp is not None:
+            stock_snapshots.append(StockSnapshot(
+                snapshot=None,  # placeholder; set after snapshot creation
+                symbol=symbol,
+                ltp=ltp,
+                change=change,
+                volume=volume,
+            ))
 
     try:
         snapshot = MarketSnapshot.objects.create(sector=sector_name, portfolio=portfolio)
         for snap in stock_snapshots:
             snap.snapshot = snapshot
-        StockSnapshot.objects.bulk_create(stock_snapshots)
+        if stock_snapshots:
+            StockSnapshot.objects.bulk_create(stock_snapshots)
         logger.info("Stored sector snapshot sector=%s portfolio=%s count=%s", sector_name, portfolio, len(stock_snapshots))
-    except Exception:
-        pass
+    except Exception as exc:
+        logger.warning("Failed to persist sector snapshot sector=%s portfolio=%s err=%s", sector_name, portfolio, exc)
 
     # update base Stock table for DB-first reads
     for row in results:

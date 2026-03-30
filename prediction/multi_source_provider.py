@@ -8,26 +8,16 @@ logger = logging.getLogger(__name__)
 
 def normalize_symbol(symbol: str, portfolio: Optional[str] = None) -> str:
     """
-    Universal normalization for TwelveData.
-    - For NIFTY/NIFTY200 → append .NSE
-    - Else return as-is
+    Canonical normalization (DB-facing).
+    - Uppercase
+    - Strip provider-specific suffixes
+    - Index symbols pass through unchanged
     """
     if not symbol:
         return symbol
     sym = strip_exchange(symbol.upper().strip())
-    if sym.startswith("^"):
-        logger.debug("Symbol normalized (index passthrough): %s", sym)
-        return sym
-
-    use_nse = False
-    if portfolio and portfolio.upper() in {"NIFTY", "NIFTY200"}:
-        use_nse = True
-    if sym in TOP_NIFTY_SYMBOLS:
-        use_nse = True
-
-    normalized = f"{sym}.NSE" if use_nse and not sym.endswith(".NSE") else sym
-    logger.debug("Symbol normalized input=%s portfolio=%s -> %s", symbol, portfolio, normalized)
-    return normalized
+    logger.debug("Symbol normalized input=%s portfolio=%s -> %s", symbol, portfolio, sym)
+    return sym
 
 
 def strip_exchange(symbol: str) -> str:
@@ -38,3 +28,31 @@ def strip_exchange(symbol: str) -> str:
         if sym.endswith(suffix):
             return sym[: -len(suffix)]
     return sym
+
+
+def provider_symbol(symbol: str, provider: str, portfolio: Optional[str] = None) -> str:
+    """
+    Map canonical symbol -> provider-specific format.
+    provider: "twelvedata" or "yfinance".
+    """
+    base = normalize_symbol(symbol, portfolio)
+    provider = (provider or "").lower()
+    if provider == "yfinance":
+        # NSE uses .NS suffix; US tickers stay as-is
+        if portfolio and portfolio.upper().startswith("NIFTY"):
+            return f"{base}.NS"
+        return base
+    # default TwelveData format
+    return base
+
+
+def provider_exchange(portfolio: Optional[str] = None) -> Optional[str]:
+    """Infer exchange code for TwelveData from portfolio name."""
+    if not portfolio:
+        return None
+    up = portfolio.upper()
+    if up.startswith("NIFTY"):
+        return "NSE"
+    if up.startswith("USA"):
+        return None
+    return None

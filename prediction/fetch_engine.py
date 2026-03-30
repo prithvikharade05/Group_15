@@ -2,6 +2,7 @@ import logging
 import os
 import random
 import time
+from collections import deque
 from datetime import timedelta
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -11,8 +12,14 @@ from django.utils import timezone
 
 from .cache_manager import DiskCache, memory_cache
 from .models import HistoricalPriceSeries, MarketTickerSnapshot
-from .multi_source_provider import normalize_symbol, strip_exchange
+from .multi_source_provider import normalize_symbol, strip_exchange, provider_symbol, provider_exchange
 from .ticker_constants import COMPANY_LOOKUP, TOP_NIFTY_SYMBOLS
+
+try:
+    import yfinance as yf
+    YF_AVAILABLE = True
+except Exception:
+    YF_AVAILABLE = False
 
 logger = logging.getLogger(__name__)
 
@@ -24,7 +31,8 @@ PRICE_URL = "https://api.twelvedata.com/price"
 SUCCESS_TTL = 600  # 10 minutes in-memory
 HIST_DB_TTL_HOURS = 12
 LIVE_DB_TTL_HOURS = 12
-MIN_CALL_INTERVAL = 1.0  # seconds between outbound calls
+MIN_CALL_INTERVAL = 7.5  # seconds between outbound calls (~8 req/min)
+MAX_CALLS_PER_MIN = 8
 BATCH_SIZE = 5  # strict per requirements
 DISK_CACHE = DiskCache(os.path.join(os.path.dirname(__file__), "models", "data_cache"))
 
@@ -41,19 +49,32 @@ SESSION_HEADERS = {
 
 class ExternalCallGate:
     """
-    Simple global gate to enforce pacing between requests.
+    Global gate enforcing both minimum spacing and per-minute quota.
     """
 
-    def __init__(self, min_interval: float = MIN_CALL_INTERVAL):
+    def __init__(self, min_interval: float = MIN_CALL_INTERVAL, max_per_min: int = MAX_CALLS_PER_MIN):
         self.min_interval = min_interval
+        self.max_per_min = max_per_min
         self._last_call = 0.0
+        self._window = deque()
 
     def wait(self):
         now = time.time()
+        # enforce per-minute budget
+        while self._window and now - self._window[0] > 60:
+            self._window.popleft()
+        if len(self._window) >= self.max_per_min:
+            sleep_for = 60 - (now - self._window[0]) + random.uniform(0.2, 0.6)
+            time.sleep(sleep_for)
+            now = time.time()
+            while self._window and now - self._window[0] > 60:
+                self._window.popleft()
+
         wait_for = max(0.0, (self._last_call + self.min_interval) - now)
         if wait_for > 0:
             time.sleep(wait_for)
         self._last_call = time.time()
+        self._window.append(self._last_call)
 
 
 CALL_GATE = ExternalCallGate()
@@ -166,9 +187,9 @@ def _store_series(symbol_base: str, interval: str, df: pd.DataFrame, source: str
         logger.warning("Failed to persist series for %s", symbol_base)
 
 
-def _call_time_series(symbols: List[str], interval: str, outputsize: int, session: requests.Session) -> Dict[str, Any]:
+def _call_time_series(symbols: List[str], interval: str, outputsize: int, session: requests.Session, exchange: Optional[str]) -> Dict[str, Any]:
     if not API_KEY:
-        logger.error("TWELVEDATA_API_KEY missing")
+        logger.error("TwelveData call blocked: missing TWELVEDATA_API_KEY")
         return {}
 
     joined = ",".join(symbols)
@@ -177,34 +198,64 @@ def _call_time_series(symbols: List[str], interval: str, outputsize: int, sessio
         attempts += 1
         try:
             CALL_GATE.wait()
-            resp = session.get(
-                TIME_SERIES_URL,
-                params={"symbol": joined, "interval": interval, "outputsize": outputsize, "apikey": API_KEY},
-                timeout=12,
-            )
-            if resp.status_code == 429:
-                logger.warning("Rate limit hit (429) for symbols=%s, attempt=%s", joined, attempts)
-                time.sleep(8)
+            params = {"symbol": joined, "interval": interval, "outputsize": outputsize, "apikey": API_KEY}
+            if exchange:
+                params["exchange"] = exchange
+            resp = session.get(TIME_SERIES_URL, params=params, timeout=12)
+            status = resp.status_code
+            if status == 429:
+                logger.warning("twelvedata rate_limit symbols=%s attempt=%s code=%s body=%s", joined, attempts, status, resp.text[:240])
+                time.sleep(8 + random.uniform(0.5, 1.5))
                 continue
             data = resp.json()
-        except Exception as exc:
-            logger.error("TwelveData request failed symbols=%s err=%s", joined, exc)
+        except Exception as exc:  # noqa: BLE001
+            logger.error("twelvedata request_error symbols=%s attempt=%s err=%s", joined, attempts, exc)
             time.sleep(1.5)
             continue
 
         if isinstance(data, dict) and data.get("status") == "error":
-            logger.warning("TwelveData error symbols=%s -> %s", joined, data)
+            logger.warning("twelvedata api_error symbols=%s code=%s message=%s", joined, data.get("code"), data.get("message"))
             return {}
 
         if isinstance(data, dict) and "values" in data:
-            logger.info("API call success symbols=%s", joined)
+            logger.info("twelvedata success symbols=%s", joined)
             return {symbols[0]: data}
 
         if isinstance(data, dict):
-            logger.info("API call success (batched) symbols=%s", joined)
+            logger.info("twelvedata success_batch symbols=%s", joined)
             return {k: v for k, v in data.items() if isinstance(v, dict)}
 
     return {}
+
+
+def _call_yfinance(symbol: str, period: str, interval: str, portfolio: Optional[str] = None) -> Optional[pd.DataFrame]:
+    """
+    Minimal yfinance wrapper returning a DataFrame aligned to TwelveData schema.
+    """
+    if not YF_AVAILABLE:
+        logger.warning("yfinance not installed; cannot fallback for %s", symbol)
+        return None
+    try:
+        yf_symbol = provider_symbol(symbol, "yfinance", portfolio)
+        ticker = yf.Ticker(yf_symbol)
+        hist = ticker.history(period=period, interval=interval, auto_adjust=False)
+        if hist is None or hist.empty:
+            logger.warning("yfinance empty response symbol=%s", yf_symbol)
+            return None
+        hist = hist.rename(
+            columns={
+                "Open": "Open",
+                "High": "High",
+                "Low": "Low",
+                "Close": "Close",
+                "Volume": "Volume",
+            }
+        )
+        hist.index.name = "Date"
+        return hist
+    except Exception as exc:  # noqa: BLE001
+        logger.error("yfinance fetch failed symbol=%s err=%s", symbol, exc)
+        return None
 
 
 def fetch_historical(symbol: str, period: str = "60d", interval: str = "1d", portfolio: str = "NIFTY200") -> Dict[str, Any]:
@@ -229,21 +280,35 @@ def fetch_historical(symbol: str, period: str = "60d", interval: str = "1d", por
 
     session = _session_with_headers()
     outputsize = _period_to_outputsize(period)
-    api_payload = _call_time_series([normalized], interval_td, outputsize, session)
+    td_symbol = provider_symbol(base_symbol, "twelvedata", portfolio)
+    exchange = provider_exchange(portfolio)
+    api_payload = _call_time_series([td_symbol], interval_td, outputsize, session, exchange)
     df = None
+    source_used = None
     if api_payload:
-        raw = api_payload.get(normalized) or api_payload.get(base_symbol)
+        raw = api_payload.get(td_symbol) or api_payload.get(base_symbol)
         if raw and "values" in raw:
             df = _df_from_values(raw.get("values"))
+            source_used = "twelvedata"
+
+    if (df is None or df.empty) and YF_AVAILABLE:
+        # fallback to yfinance
+        yf_interval = "1d" if interval_td == "1day" else interval_td
+        df = _call_yfinance(base_symbol, period=period, interval=yf_interval, portfolio=portfolio)
+        source_used = "yfinance" if df is not None else source_used
+        if df is None:
+            logger.warning("yfinance fallback failed symbol=%s portfolio=%s", base_symbol, portfolio)
+        else:
+            logger.info("yfinance fallback success symbol=%s interval=%s period=%s", base_symbol, yf_interval, period)
 
     if df is not None and not df.empty:
-        _store_series(base_symbol, interval_td, df, source="twelvedata")
+        _store_series(base_symbol, interval_td, df, source=source_used or "twelvedata")
         memory_cache.set(mem_key, df, ttl=SUCCESS_TTL)
         try:
             DISK_CACHE.set(mem_key, _serialize_df(df))
         except Exception:
             pass
-        return {"success": True, "data": df, "error": None, "source": "twelvedata"}
+        return {"success": True, "data": df, "error": None, "source": source_used or "twelvedata"}
 
     if db_df is not None:
         # serve stale DB as fallback
@@ -322,26 +387,27 @@ def fetch_live_price(symbol: str, portfolio: str = "NIFTY200", session: Optional
     df = hist.get("data")
     if hist.get("success") and df is not None and not df.empty:
         fields = _calculate_price_fields(df)
-        payload = {
-            "symbol": base_symbol,
-            **fields,
-            "source": "twelvedata",
-        }
-        try:
-            MarketTickerSnapshot.objects.create(
-                symbol=base_symbol,
-                company=COMPANY_LOOKUP.get(base_symbol),
-                price=fields.get("price"),
-                change=fields.get("change"),
-                change_percent=fields.get("change_pct"),
-                volume=fields.get("volume"),
-                source="twelvedata",
-                timestamp=timezone.now(),
-            )
-        except Exception:  # noqa: BLE001
-            logger.warning("Failed to store ticker snapshot for %s", base_symbol)
-        memory_cache.set(mem_key, payload, ttl=SUCCESS_TTL)
-        return {"success": True, "data": payload, "error": None, "source": "twelvedata"}
+        if fields.get("price") is not None:
+            payload = {
+                "symbol": base_symbol,
+                **fields,
+                "source": hist.get("source") or "twelvedata",
+            }
+            try:
+                MarketTickerSnapshot.objects.create(
+                    symbol=base_symbol,
+                    company=COMPANY_LOOKUP.get(base_symbol),
+                    price=fields.get("price"),
+                    change=fields.get("change"),
+                    change_percent=fields.get("change_pct"),
+                    volume=fields.get("volume"),
+                    source=hist.get("source") or "twelvedata",
+                    timestamp=timezone.now(),
+                )
+            except Exception:  # noqa: BLE001
+                logger.warning("Failed to store ticker snapshot for %s", base_symbol)
+            memory_cache.set(mem_key, payload, ttl=SUCCESS_TTL)
+            return {"success": True, "data": payload, "error": None, "source": "twelvedata"}
 
     stale = (
         MarketTickerSnapshot.objects.filter(symbol=base_symbol)
@@ -384,6 +450,7 @@ def fetch_batch(symbols: List[str], period: str = "5d", interval: str = "1d", po
     interval_td = _map_interval(interval)
     outputsize = _period_to_outputsize(period)
     session = _session_with_headers()
+    exchange = provider_exchange(portfolio)
 
     norm_list = list(normalized_map.keys())
 
@@ -405,20 +472,27 @@ def fetch_batch(symbols: List[str], period: str = "5d", interval: str = "1d", po
             time.sleep(random.uniform(1.0, 2.0))
             continue
 
-        api_payload = _call_time_series(remaining, interval_td, outputsize, session)
+        td_symbols = [provider_symbol(r, "twelvedata", portfolio) for r in remaining]
+        api_payload = _call_time_series(td_symbols, interval_td, outputsize, session, exchange)
         time.sleep(random.uniform(1.0, 2.0))
 
-        for norm in remaining:
+        for idx, norm in enumerate(remaining):
             raw = normalized_map[norm]
             base = strip_exchange(norm)
-            body = api_payload.get(norm) or api_payload.get(base)
+            td_sym = td_symbols[idx]
+            body = api_payload.get(td_sym) or api_payload.get(base)
             df = None
             if body and "values" in body:
                 df = _df_from_values(body.get("values"))
+                source_used = "twelvedata"
+            else:
+                # fallback per symbol via yfinance
+                df = _call_yfinance(base, period=period, interval="1d" if interval_td == "1day" else interval_td, portfolio=portfolio)
+                source_used = "yfinance" if df is not None else None
             if df is not None and not df.empty:
-                _store_series(base, interval_td, df, source="twelvedata")
+                _store_series(base, interval_td, df, source=source_used or "twelvedata")
                 memory_cache.set(f"hist:{base}:{interval_td}", df, ttl=SUCCESS_TTL)
-                results[raw] = {"success": True, "data": df, "error": None, "source": "twelvedata"}
+                results[raw] = {"success": True, "data": df, "error": None, "source": source_used or "twelvedata"}
             else:
                 db_df, _ = _load_series_from_db(base, interval_td, 10_000)
                 if db_df is not None:

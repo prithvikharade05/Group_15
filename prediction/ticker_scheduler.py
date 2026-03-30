@@ -1,4 +1,5 @@
 import logging
+import os
 import random
 import time
 from typing import List
@@ -13,6 +14,7 @@ from .ticker_constants import TOP_NIFTY_SYMBOLS, COMPANY_LOOKUP
 logger = logging.getLogger(__name__)
 
 FETCH_INTERVAL_SECONDS = 12 * 60 * 60  # 12 hours
+LOCK_PATH = os.path.join(os.path.dirname(__file__), "..", "scheduler", ".scheduler.lock")
 
 
 def _prune_history(symbols: List[str], keep: int = 50):
@@ -82,6 +84,15 @@ def run_scheduler_forever(interval_seconds: int = FETCH_INTERVAL_SECONDS):
     """
     Long-running loop to refresh ticker data every `interval_seconds`.
     """
+    # best-effort single instance guard (shared with scheduler/scheduler.py)
+    try:
+        lock_path = os.path.abspath(LOCK_PATH)
+        fd = os.open(lock_path, os.O_CREAT | os.O_EXCL | os.O_RDWR)
+        os.write(fd, str(os.getpid()).encode())
+    except FileExistsError:
+        logger.warning("Ticker scheduler lock present; another instance likely running. Exiting.")
+        return
+
     logger.info("Starting ticker scheduler; interval=%ss", interval_seconds)
     while True:
         started = time.monotonic()
