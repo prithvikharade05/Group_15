@@ -38,9 +38,7 @@ def provider_symbol(symbol: str, provider: str, portfolio: Optional[str] = None)
     base = normalize_symbol(symbol, portfolio)
     provider = (provider or "").lower()
     if provider == "yfinance":
-        # NSE uses .NS suffix; US tickers stay as-is
-        if portfolio and portfolio.upper().startswith("NIFTY"):
-            return f"{base}.NS"
+        # Per deployment directive: do NOT append exchange suffix for yfinance
         return base
     # default TwelveData format
     return base
